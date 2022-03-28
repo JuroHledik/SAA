@@ -1,0 +1,1 @@
+This application is a calculator of optimal portfolio allocations depending on user preferences.

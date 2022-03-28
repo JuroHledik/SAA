@@ -1,0 +1,42 @@
+% Copyright 2007 by Till Tantau, 2009-2012 by Hermann_Elendner
+%
+% This file may be distributed and/or modified
+% under the GNU Public License, version 2.
+%
+% See the file docs/LICENSE for more details.
+%
+% $revision 797
+
+\RequirePackage{ifthen}
+
+
+\mode<presentation>
+
+\defbeamertemplate*{footline}{infolines theme}
+{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=.4\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%
+    \ifthenelse{\equal{\beamer@shortinstitute}{}}{% if shortinstitute is empty:
+      \usebeamerfont{author in head/foot}\insertshortauthor %
+    }{% else: shortinstitute provided:
+      \usebeamerfont{author in head/foot}\insertshortauthor~~(\insertshortinstitute) %
+    }
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.17\paperwidth,ht=2.25ex,dp=1ex,center]{institute in head/foot}%
+    \includegraphics[scale=.05]{docs/VGSF_logo_2} %
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.35\paperwidth,ht=2.25ex,dp=1ex,center]{title in head/foot}%
+   \usebeamerfont{title in head/foot}\insertshorttitle  %
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.08\paperwidth,ht=2.25ex,dp=1ex,right]{title in head/foot}%
+    \insertframenumber{} / \inserttotalframenumber\hspace*{2ex}  %
+  \end{beamercolorbox}%
+  }%
+  \vskip0pt%
+}
+
+\setbeamersize{text margin left=1em,text margin right=1em}
+
+\mode
+<all>

@@ -1,0 +1,30 @@
+\begin{thebibliography}{4}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Dißmann et~al.(2013)Dißmann, Brechmann, Czado, and
+  Kurowicka]{2013Dissmann}
+J.~Dißmann, E.~C. Brechmann, C.~Czado, and D.~Kurowicka.
+\newblock Selecting and estimating regular vine copulae and application to
+  financial returns.
+\newblock \emph{Computational Statistics \& Data Analysis}, 2013.
+
+\bibitem[Goldberg et~al.(2013)Goldberg, Hayes, and Mahmoud]{DraftGoldberg}
+Lisa~R. Goldberg, Michael~Y. Hayes, and Ola Mahmoud.
+\newblock Minimizing shortfall.
+\newblock 2013.
+
+\bibitem[Nagler et~al.(2021)Nagler, Schepsmeier, Stoeber, and
+  Brechmann]{2021VineCopulaPackage}
+Thomas Nagler, Ulf Schepsmeier, Jakob Stoeber, and Eike~Christian Brechmann.
+\newblock \emph{Package ‘VineCopula’}, October 2021.
+
+\bibitem[Rockafellar and Uryasev(2000)]{2000Rockafellar}
+R.~Tyrrell Rockafellar and Stanislav Uryasev.
+\newblock Optimization of conditional value-at-risk.
+\newblock \emph{Journal of Risk}, 2000.
+
+\end{thebibliography}

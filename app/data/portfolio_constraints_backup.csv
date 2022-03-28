@@ -1,0 +1,9 @@
+ID;asset;perc_min;perc_max;vol_min;vol_max;vol_prev
+1;Gold;0;1;1500;1500;1500
+2;US;0.05;0.05;0;Inf;500
+3;ASW;0;1;0;Inf;8500
+4;Stocks;0.03;1;0;Inf;300
+5;China;0.026;1;0;Inf;260
+6;InflBonds;0;1;0;Inf;0
+7;MBS;0;1;0;Inf;0
+8;EM;0;1;0;Inf;0

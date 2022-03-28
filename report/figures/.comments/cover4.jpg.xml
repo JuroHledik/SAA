@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<comment version="3.0">
+  <caption>MPC_UNCLASS_20140626_0354_0012</caption>
+  <note>A Royal Air Force Voyager transport tanker aircraft sits on the tarmac at Mount Pleasant Airfield in the Falkland Islands.
+
+The full passenger and cargo capability can be used while Voyager is configured for AAR operations. The cabin remains fully configured and the cargo compartments are unobstructed. On a typical deployment across the Atlantic, a single aircraft is able to refuel 4 Tornados and still carry 11,000lb (5000kg) of freight/passengers.
+
+</note>
+  <place>Mount Pleasant Complex</place>
+  <categories>
+    <category value="MPC"/>
+    <category value="Mount Pleasant"/>
+    <category value="Complex"/>
+    <category value="Falklands"/>
+    <category value="British Forces South Atlantic"/>
+    <category value="Falkland Islands"/>
+    <category value="Silhouette"/>
+    <category value="Sunrise"/>
+    <category value="Sunset"/>
+    <category value="Royal Air Force"/>
+    <category value="RAF"/>
+    <category value="Equipment"/>
+    <category value="Aircraft"/>
+    <category value="Tanker"/>
+    <category value="Voyager"/>
+    <category value="FSTA"/>
+  </categories>
+</comment>

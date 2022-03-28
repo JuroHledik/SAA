@@ -1,0 +1,14 @@
+This is pdfTeX, Version 3.1415926-2.3-1.40.12 (MiKTeX 2.9) (preloaded format=pdftex 2011.10.29)  16 JUL 2012 09:08
+entering extended mode
+**C:/Users/user/Documents/Beamer/Neu/themes/beamerthemeVienna.sty
+(C:/Users/user/Documents/Beamer/Neu/themes/beamerthemeVienna.sty
+! Undefined control sequence.
+l.10 \RequirePackage
+                    {ifthen}
+? 
+! Emergency stop.
+l.10 \RequirePackage
+                    {ifthen}
+End of file on the terminal!
+
+!  ==> Fatal error occurred, no output PDF file produced!

@@ -1,0 +1,179 @@
+% Copyright 2007 by Till Tantau, 2009-2012 by Hermann_Elendner
+%
+% This file may be distributed and/or modified
+% under the GNU Public License, version 2.
+%
+% See the file docs/LICENSE for more details.
+%
+% $revision 797
+
+
+\mode<presentation>
+
+\definecolor{vgsfblue}{RGB}{72,102,172}     
+\definecolor{vgsfyellow}{RGB}{236,158,16}  
+
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{alerted text}{fg=red}
+\setbeamercolor{example text}{fg=green!50!black}
+
+\setbeamercolor{structure}{fg=vgsfblue}       % not renamed for safety, better name: content
+\setbeamercolor{chaos}{fg=vgsfyellow}         % newly def, better name: framing
+\setbeamercolor{warp}{fg=black,bg=vgsfyellow} % for light yellow by, mainly {boxes}
+
+\setbeamercolor{background canvas}{parent=normal text}
+\setbeamercolor{background}{parent=background canvas}
+
+\setbeamercolor{palette primary}{use=structure,fg=structure.fg}
+\setbeamercolor{palette secondary}{use=structure,fg=structure.fg!75!black}
+\setbeamercolor{palette tertiary}{use=structure,fg=structure.fg!50!black}
+\setbeamercolor{palette quaternary}{fg=black}
+
+\setbeamercolor{palette chaos primary}{use=chaos,fg=chaos.fg}            
+\setbeamercolor{palette chaos secondary}{use=chaos,fg=chaos.fg!75!black} 
+\setbeamercolor{palette chaos tertiary}{use=chaos,fg=chaos.fg!50!black}  
+\setbeamercolor{palette chaos quaternary}{fg=black}                      
+
+\setbeamercolor{palette sidebar primary}{use=normal text,fg=normal text.fg}
+\setbeamercolor{palette sidebar secondary}{use=structure,fg=structure.fg}
+\setbeamercolor{palette sidebar tertiary}{use=normal text,fg=normal text.fg}
+\setbeamercolor{palette sidebar quaternary}{use=structure,fg=structure.fg}
+
+\setbeamercolor{math text}{}
+\setbeamercolor{math text inlined}{parent=math text}
+\setbeamercolor{math text displayed}{parent=math text}
+
+\setbeamercolor{normal text in math text}{}
+
+\setbeamercolor{local structure}{parent=structure}
+\setbeamercolor{local chaos}{parent=chaos}                               
+
+\setbeamercolor{titlelike}{parent=structure}
+
+\setbeamercolor{title}{parent=titlelike}
+\setbeamercolor{title in head/foot}{parent=palette primary}
+\setbeamercolor{title in sidebar}{parent=palette sidebar quaternary}
+
+\setbeamercolor{subtitle}{parent=title}
+
+\setbeamercolor{author}{}
+\setbeamercolor{author in head/foot}{parent=palette primary}
+\setbeamercolor{author in sidebar}{use=palette sidebar tertiary,fg=palette sidebar tertiary.fg}
+
+\setbeamercolor{institute}{}
+\setbeamercolor{institute in head/foot}{parent=palette primary}   
+\setbeamercolor{institute in sidebar}{use=palette sidebar tertiary,fg=palette sidebar tertiary.fg}
+
+\setbeamercolor{date}{}
+\setbeamercolor{date in head/foot}{parent=palette primary}       
+\setbeamercolor{date in sidebar}{use=palette sidebar tertiary,fg=palette sidebar tertiary.fg}
+
+\setbeamercolor{titlegraphic}{}
+
+\setbeamercolor{part name}{}
+\setbeamercolor{part title}{parent=titlelike}
+
+\setbeamercolor{section in toc}{parent=structure}
+\setbeamercolor{section in toc shaded}{parent=section in toc}
+\setbeamercolor{section in head/foot}{use=chaos,bg=chaos.fg!25!bg}
+\setbeamercolor{section in sidebar}{parent=palette sidebar secondary}
+\setbeamercolor{section in sidebar shaded}{use=section in sidebar,fg=section in sidebar.fg!40!bg}
+\setbeamercolor{section number projected}{parent=item projected}
+
+\setbeamercolor{subsection in toc}{}
+\setbeamercolor{subsection in toc shaded}{parent=subsection in toc}
+\setbeamercolor{subsection in head/foot}{parent=palette chaos secondary} 
+\setbeamercolor{subsection in sidebar}{parent=palette sidebar primary}
+\setbeamercolor{subsection in sidebar shaded}{use=subsection in sidebar,fg=subsection in sidebar.fg!40!bg}
+\setbeamercolor{subsection number projected}{parent={subitem projected}}
+
+\setbeamercolor{subsubsection in toc}{parent=subsection in toc}
+\setbeamercolor{subsubsection in toc shaded}{parent=subsubsection in toc}
+\setbeamercolor{subsubsection in head/foot}{parent=subsection in head/foot}
+\setbeamercolor{subsubsection in sidebar}{parent=subsection in sidebar}
+\setbeamercolor{subsubsection in sidebar shaded}{parent=subsection in sidebar shaded}
+\setbeamercolor{subsubsection number projected}{parent=subsubitem projected}
+
+\setbeamercolor{headline}{}
+\setbeamercolor{footline}{}
+
+\setbeamercolor{sidebar}{}
+\setbeamercolor{sidebar left}{parent=sidebar}
+\setbeamercolor{sidebar right}{parent=sidebar}
+
+\setbeamercolor{logo}{parent=palette secondary}
+
+\setbeamercolor{frametitle}{parent=titlelike}
+\setbeamercolor{framesubtitle}{parent=frametitle}
+
+\setbeamercolor{frametitle right}{parent=frametitle}
+
+\setbeamercolor{caption}{}
+\setbeamercolor{caption name}{parent=structure}
+
+\setbeamercolor{button}{use=local chaos,bg=local chaos.fg!50!bg,fg=white}
+\setbeamercolor{button border}{use=button,fg=button.bg}                  
+\setbeamercolor{navigation symbols}{use=chaos,fg=chaos.fg!40!bg}         
+\setbeamercolor{navigation symbols dimmed}{use=chaos,fg=chaos.fg!20!bg}  
+\setbeamercolor{mini frame}{parent=section in head/foot}                 
+
+\setbeamercolor{block body}{use=warp,bg=warp.bg!10!white}
+\setbeamercolor{block body alerted}{parent=block body}
+\setbeamercolor{block body example}{parent=block body}
+\setbeamercolor{block title}{use=warp,bg=warp.bg!20!white}
+\setbeamercolor{block title alerted}{parent=alerted text}
+\setbeamercolor{block title example}{parent=example text}
+
+\setbeamercolor{item}{parent=local structure}
+\setbeamercolor{subitem}{parent=item}
+\setbeamercolor{subsubitem}{parent=subitem}
+
+\setbeamercolor{item projected}{parent=item,use=item,fg=white,bg=item.fg}
+\setbeamercolor{subitem projected}{parent=item projected}
+\setbeamercolor{subsubitem projected}{parent=subitem projected}
+
+\setbeamercolor{enumerate item}{parent=item}
+\setbeamercolor{enumerate subitem}{parent=subitem}
+\setbeamercolor{enumerate subsubitem}{parent=subsubitem}
+
+\setbeamercolor{itemize item}{parent=item}
+\setbeamercolor{itemize subitem}{parent=subitem}
+\setbeamercolor{itemize subsubitem}{parent=subsubitem}
+
+\setbeamercolor{itemize/enumerate body}{}
+\setbeamercolor{itemize/enumerate subbody}{}
+\setbeamercolor{itemize/enumerate subsubbody}{}
+
+\setbeamercolor{description item}{parent=item}
+
+\setbeamercolor{bibliography item}{parent=item}
+
+\setbeamercolor{bibliography entry author}{use=structure,fg=structure.fg}
+\setbeamercolor{bibliography entry title}{use=normal text,fg=normal text.fg}
+\setbeamercolor{bibliography entry location}{use=structure,fg=structure.fg!65!bg}
+\setbeamercolor{bibliography entry note}{use=structure,fg=structure.fg!65!bg}
+
+\setbeamercolor{separation line}{}
+
+\setbeamercolor{upper separation line head}{parent=separation line}
+\setbeamercolor{middle separation line head}{parent=separation line}
+\setbeamercolor{lower separation line head}{parent=separation line}
+
+\setbeamercolor{upper separation line foot}{parent=separation line}
+\setbeamercolor{middle separation line foot}{parent=separation line}
+\setbeamercolor{lower separation line foot}{parent=separation line}
+
+\setbeamercolor{abstract}{}
+\setbeamercolor{abstract title}{parent=structure}
+
+\setbeamercolor{verse}{}
+
+\setbeamercolor{quotation}{}
+\setbeamercolor{quote}{parent=quotation}
+
+\setbeamercolor{page number in head/foot}{parent=palette primary,bg=chaos.fg!20!white}% somehow this is not respecting {parent=palette structure secondary} 
+
+\setbeamercolor{qed symbol}{parent=structure}
+
+\mode
+<all>

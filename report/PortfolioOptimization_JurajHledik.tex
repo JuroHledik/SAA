@@ -1,0 +1,52 @@
+\documentclass{layout/layout}%
+\usepackage{lastpage}%
+\usepackage{pdfpages}%
+\usepackage[]{algorithm2e}
+\usepackage[round]{natbib}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+
+% Flowchart
+\usepackage{tikz}
+\usetikzlibrary{shapes,positioning}
+
+
+
+\newcommand{\subtag}[1]{\tag{\theparentequation#1}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+%
+\renewcommand{\deg}{\si{\degree}\xspace}%
+\newcommand\ReportYear{2021}%
+\newcommand\ReportMonthName{March}%
+%
+\newcolumntype{b}{X}
+\newcolumntype{s}{>{\hsize=.5\hsize}X}
+
+\begin{document}%
+\normalsize%
+\frontmatter%
+\title{Strategic Asset Allocation}%
+\subtitle{Estimation, Optimization, Visualization}%
+\author{Juraj Hledik}%
+\subject{\ReportMonthName \  \ReportYear}%
+\coverimage{figures/cover7.jpg}%
+\definecolor{title}{HTML}{4884d6}%
+\makecover%
+\input{preface}%
+\tableofcontents%
+\listoffigures%
+\listoftables%
+\mainmatter%
+\input{introduction}%
+\input{return_estimation}%
+\input{portfolio_optimization}%
+%\input{technical_summary}%
+\bibliographystyle{plainnat}
+\bibliography{literature}
+
+\appendix%
+
+\end{document}

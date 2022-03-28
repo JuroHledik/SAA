@@ -1,0 +1,173 @@
+% Copyright 2007 by Till Tantau, 2009-2012 by Hermann_Elendner
+%
+% This file may be distributed and/or modified
+% under the GNU Public License, version 2.
+%
+% See the file docs/LICENSE for more details.
+%
+% $revision 797
+
+\RequirePackage{ifthen}
+
+
+%> general adjustments for vgsf style:
+\institute[]{\\[-30pt]Vienna Graduate School of Finance}
+%%\let\Tiny=\tiny  % needed to avoid warnings with cmr font
+
+%> define fancy blocks (only 1 line here instead of in innertheme):
+\setbeamertemplate{blocks}[rounded][shadow=true]
+
+%> make nice enumii and enumiii:
+\setbeamertemplate{enumerate subitem}{\alph{enumii}.}
+\setbeamertemplate{enumerate subsubitem}{\roman{enumiii}.}
+
+%> make nice itemi, itemii and itemiii:
+\beamertemplateballitem
+%\useitemizeitemtemplate{\footnotesize\raise0.5pt\hbox{\color{structure}\scriptsize$\blacksquare$}}
+\usesubitemizeitemtemplate{\small\raise0.5pt\hbox{\color{structure}\large$\diamond$}}
+\usesubsubitemizeitemtemplate{\footnotesize\raise0.5pt\hbox{\color{structure}\tiny$\blacktriangleright$}}
+
+
+
+%> provide commands:
+\newcommand{\setcommand}[2]{%
+  \ifthenelse{\isundefined{#1}}{   
+    \newcommand{#1}{#2}%
+  }{
+    \renewcommand{#1}{#2}%
+  }
+}
+\setcommand{\st}{\ensuremath{^{\textsf{st}}} }
+\setcommand{\nd}{\ensuremath{^{\textsf{nd}}} }
+\setcommand{\rd}{\ensuremath{^{\textsf{rd}}} }
+\setcommand{\th}{\ensuremath{^{\textsf{th}}} }
+\setcommand{\ie}{i.e.\ }
+\setcommand{\Eg}{E.g.,\ }
+\setcommand{\eg}{e.g.,\ }
+
+%> appendix environment for final slide & backup slides:
+\renewenvironment{appendix}{%% on \begin{appendix}:
+  %% thank-you slide:
+  {  %% block to bound effect of changing footline
+    \setbeamertemplate{footline}{%
+      \begin{center}%
+        \vspace*{-40pt}%
+        \includegraphics[scale=.1]{docs/VGSF_logo}%
+      \end{center}%
+    } %% end of setbeamertemplate footline
+
+    \beamertemplatenavigationsymbolsempty  %% drop symbols on thank-you slide
+
+    \begin{frame}{}%
+      \begin{center}%
+        \emph{\Large{Thank you for your attention\\[10pt]%
+            Comments welcome}}%
+      \end{center}%
+    \end{frame}%
+  } %% end block to bound effect of changing footline
+  %% stop numbering, backup slides don't increase total
+  \newcounter{totalframenumberexclbackupslides}%
+  \setcounter{totalframenumberexclbackupslides}{\value{framenumber}}%
+  %% don't count thank-you:
+  \addtocounter{totalframenumberexclbackupslides}{-1}
+  \addtocounter{framenumber}{-1}
+  %% obey switch to exlcude all backup slides:
+  \ifthenelse{\isundefined{\excludeAppendix}}{}{
+    \ifthenelse{\equal{\excludeAppendix}{true}}{% if \excludeAppendix==true:
+      \end{appendix}
+      \end{document}
+    }{}
+  }
+
+}{%% on \end{appendix}:
+  \setcounter{framenumber}{\value{totalframenumberexclbackupslides}}%
+}
+
+%> spacing between paragraphs increased:
+\parskip 1ex plus 1ex minus 1ex
+
+%> environment {witemize} for wide elastic itemize provided:
+\newenvironment{witemize}{% on \begin{witemize}:
+  \begin{itemize}
+    \itemsep 4ex plus1ex minus4ex%
+}{% on \end{witemize}
+  \end{itemize}
+}
+
+%> customise title slide:
+\let\maketitleold\maketitle
+\renewcommand{\maketitle}{ 
+  \addtocounter{framenumber}{-1}  %% don't number title slide
+  {  %% block to bound effect of changing footline
+    \setbeamertemplate{footline}{%
+      \begin{center}%
+        \vspace*{-40pt}%
+        \includegraphics[scale=.1]{docs/VGSF_logo}%
+      \end{center}%
+    } %% end of setbeamertemplate footline
+
+    \beamertemplatenavigationsymbolsempty  %% drop symbols on title
+
+    \begin{frame}
+      \maketitleold
+      \ifthenelse{\isundefined{\occasion}}{}{%
+        \begin{center}
+          \vspace*{-30pt}
+          \small{\occasion}
+        \end{center}
+      }%end \occasion defined.
+    \end{frame}
+  } %% end block to bound effect of changing footline
+}
+
+%> define \emph and \bold:
+\let\oldemph\emph
+\renewcommand{\emph}[1]{\textcolor{vgsfblue}{\oldemph{#1}}}
+\renewcommand{\bold}[1]{\textbf{#1}}
+
+%> other stuff:
+\def\newblock{\hskip .11em plus .33em minus .07em} % for biblio
+
+%> all the rest....
+
+\DeclareOptionBeamer{compress}{\beamer@compresstrue}
+\ProcessOptionsBeamer
+
+\mode<presentation>
+
+\setbeamertemplate{frametitle}[default][center]
+
+\AtBeginDocument{%
+  {
+    \usebeamercolor{section in head/foot}
+  }
+  
+  \pgfdeclareverticalshading{beamer@headfade}{\paperwidth}
+  {%
+    color(0cm)=(bg);
+    color(1.25cm)=(section in head/foot.bg)%
+  }
+
+  \setbeamercolor{section in head/foot}{bg=}
+}
+
+\AtBeginPart{%
+  \ifthenelse{\isundefined{\includePartPages}}{}{%
+    \ifthenelse{\equal{\includePartPages}{true}}{% if \includePartPages==true:
+      %% automatically add part pages when Part begins:
+      { % block to bound effect of removing footline
+        \beamertemplatenavigationsymbolsempty  % drop symbols
+
+        \setbeamertemplate{footline}{}  % no footline on part slides
+        \begin{frame}
+          \partpage
+        \end{frame}
+      }{}
+    }
+  }
+}
+
+\addtoheadtemplate{\pgfuseshading{beamer@headfade}\vskip-1.25cm}{}
+
+\mode
+<all>

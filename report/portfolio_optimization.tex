@@ -1,0 +1,383 @@
+\chapter{Portfolio optimization}
+
+In this chapter, we provide methodology for portfolio optimization and its implementation given a modular set of investor constraints.
+
+Throughout the chapter, we shall use multiple different variables. Their description is summarized in Table \ref{tab:portfolio_optimization:variables}.
+
+\begin{table}[h]
+	\centering
+	\begin{tabularx}{0.9\linewidth}{lllX}
+		Variable & Domain & Dimension & Description  \\
+		\toprule
+		\textbf{$K$} & $\mathbb{N}$	& $1$ &  Number of asset classes.\\
+		\textbf{$N$} & $\mathbb{N}$	& $1$ &  Sample size of empirical returns used as prediction of the future.\\
+		\textbf{$\mathbf{r}$} & $\mathbb{R}^{N\times K}$	& $N\times K$ &  Empirical return distribution.\\			
+		\textbf{$\mathbf{w}$} & $[0,1]^{K-1}$& $K$ &  Portfolio weights. Need to sum up to 1.\\
+		\textbf{$\mathbf{v}$} & $[0,1]^{K-1}$& $K$ &  Previous portfolio weights. Need to sum up to 1.\\
+		\textbf{$\mathbf{\bar{x}}$} & $\mathbb{R}^K$	& $K$ &  Vector of expected returns for each asset class.\\
+		\textbf{$\mathbf{\Sigma}$} & $\mathbb{R}^{K\times K}$ & $K\times K$ &  Variance - covariance matrix of portfolio returns\\		
+		\textbf{$\mathbf{\bar{x}^{\min}}$} & $\mathbb{R}^K$	& $K$ &  Minimum expected return accepted by the investor.\\				
+		\textbf{$\mathbf{w^{\min}}$} & $[0,1]^{K}$	& $K$ &  Vector of minimum allowed portfolio weights.\\						
+		\textbf{$\mathbf{w^{\max}}$} & $[0,1]^{K}$	& $K$ &  Vector of maximum allowed portfolio weights.\\
+		\textbf{$\mathbf{a^{\min}}$} & $\mathbb{R^+}^K$	& $K$ &  Vector of minimum allowed amount for each asset.\\						
+		\textbf{$\mathbf{a^{\max}}$} & $\mathbb{R^+}^K$	& $K$ &  Vector of maximum allowed amount for each asset.\\										
+		\textbf{$\alpha$} & $[0,1]$	& $1$ &  CVaR level. If for instance $\alpha=0.05$, we look at what happens in $5\%$ of the lowest return realizations. \\				
+		\textbf{$\theta_1$} & $\mathbb{R}_0^+$	& $1$ &  Investor importance for the portfolio  expected return. The higher the value, the higher the relative importance of expected return in investor's preferences.\\
+		\textbf{$\theta_2$} & $\mathbb{R}_0^+$	& $1$ &  Investor importance for the portfolio variance. The higher the value, the higher the relative importance of variance in investor's preferences.\\
+		\textbf{$\theta_3$} & $\mathbb{R}_0^+$	& $1$ &  Investor importance for the portfolio expected shortfall. The higher the value, the higher the relative importance of expected shortfall in investor's preferences.\\
+		\textbf{$\theta_4$} & $\mathbb{R}_0^+$	& $1$ &  Investor importance for the similarity with the previous portfolio. The higher the value, the lower the willingness of investor to change their portfolio from its previous state.\\
+		\textbf{$\Omega$} & $\mathbb{R}^+$	& $1$ &  Total portfolio size.\\
+		\textbf{$\lambda^{\max}$} & $\mathbb{R}$	& $1$ &  Minimum accepted CVaR (expected shortfall) return.\\	
+		\textbf{$\Lambda^{\max}$} & $\mathbb{R}$	& $1$ &  Maximum allowed expected shortfall.\\		
+		
+		\bottomrule& & 
+	\end{tabularx}
+	\caption{Asset classes.}
+	\label{tab:portfolio_optimization:variables}
+\end{table}
+
+\section{Objective function}
+
+In our approach, the investor can choose how much they care about their portfolio's expected return, variance, expected shortfall and similarity to its last portfolio weights. These quantities' relative importance are expressed in terms of variables $\theta_1, \theta_2, \theta_3$ and $\theta_4$.
+
+The most computationally demanding part of our optimization is looking for the optimal expected shortfall. It can be shown, that if we simply wanted to minimize shortfall, we could write the optimization problem in the following way:
+
+
+\begin{eqnarray}
+	\min_{\mathbf{w},t,\mathbf{z}} \ \ \ \ - t &-& \frac{1}{\lfloor{\alpha N}\rfloor} \sum_{i=1}^{N} z_i \label{eq:shortfall_optimization}\\
+	s.t. \ \ \ \ t + z_i &\leq& \mathbf{w}^\top \mathbf{r_i}\ \ \ \ \forall i\in \{1\ldots,N\}\\
+					z_i&\leq& 0 \ \ \ \ \ \ \ \ \forall i\in \{1\ldots,N\}\\
+						\mathbf{w}^\top \textbf{1}&=&1
+\end{eqnarray}
+
+This result dates back to 1999, see \citep{2000Rockafellar} for further details or \citep{DraftGoldberg} for explanation of implementation. Written in this form, the optimization does not prohibit short selling, does not include any minimum allowed expected return, does not consider previous portfolio weights and neither does it include any type of portfolio constraints. It simply and plainly optimizes the expected shortfall by introducing $N+1$ additional variables and $2N$ additional constraints.
+
+In order to adapt this result to our optimization routine, we need to combine it with other optimization objectives - maximizing return, minimizing variance and minimizing difference from our previous portfolio. Depending on relative importance of these concepts, such comprehensive optimization then exhibits the following objective function of $\theta_1, \ldots, \theta_4$:
+
+
+\begin{eqnarray}
+\max_{\mathbf{w},t,\mathbf{z}} \ \ \ \ \theta_1 \left[\mathbf{w}^\top \mathbf{\bar{x}}\right] + \theta_2 \left[-\frac{1}{2} \mathbf{w}^\top\mathbf{\Sigma} \mathbf{w}\right] &+& \theta_3\left[t + \frac{1}{\lfloor{\alpha N}\rfloor} \sum_{i=1}^{N} z_i\right] + \theta_4\left[ -\frac{1}{2} (\mathbf{w}-v)^\top\mathbf{I}(\mathbf{w}-v)\right] \label{eq:portfolio_optimization:objective_function}
+\end{eqnarray}
+
+In theory, we could force parameters $\theta_1, \ldots, \theta_4$ to satisfy $\theta_1 + \theta_2 + \theta_3$ + $\theta_4$ = 1. This would turn them into proper weights, truly showing the relative importance of each of the four optimization targets with respect to the rest. It would not change the resulting optimal portfolio since we would be simply multiplying our current objective function by a constant. Nevertheless, it's ok to think about these importance parameters as weights as one can always choose them such that they indeed sum up to 1 if desired.
+
+For computational purposes, this objective function needs to be formulated in the following shape:
+\begin{equation}
+\min_{\mathbf{b}} \ \ -\mathbf{d}^\top \mathbf{b} + \frac{1}{2} \mathbf{b}^\top \mathbf{D} \mathbf{b}
+\label{eq:portfolio_optimization:objective_function_transformed}
+\end{equation}
+Following steps and substitutions need to be taken to transform this problem from \ref{eq:portfolio_optimization:objective_function} to \ref{eq:portfolio_optimization:objective_function_transformed}:
+\begin{eqnarray}
+\argmax_{\mathbf{w},t,\mathbf{z}} \ \ \theta_1 \left[\mathbf{w}^\top \mathbf{\bar{x}}\right] + \theta_2 \left[-\frac{1}{2} \mathbf{w}^\top\mathbf{\Sigma} \mathbf{w}\right] &+& \theta_3\left[t + \frac{1}{\lfloor{\alpha N}\rfloor} \sum_{i=1}^{N} z_i\right] + \theta_4\left[ -\frac{1}{2} (\mathbf{w}-\mathbf{v})^\top\mathbf{I}(\mathbf{w}-\mathbf{v})\right]\nonumber \\
+&\Updownarrow& \nonumber\\
+\argmax_{\mathbf{w},t,\mathbf{z}} \ \ \theta_1 \left[\mathbf{w}^\top \mathbf{\bar{x}}\right] + \theta_2 \left[-\frac{1}{2} \mathbf{w}^\top\mathbf{\Sigma} \mathbf{w}\right] &+& \theta_3\left[t + \frac{1}{\lfloor{\alpha N}\rfloor} \sum_{i=1}^{N} z_i\right] +\nonumber \\  & & \ \ \ \ \ \ \ \ + \ \theta_4\left[ -\frac{1}{2} \mathbf{w}^\top\mathbf{I}\mathbf{w} + \mathbf{w}^\top\mathbf{I}\mathbf{v} -\frac{1}{2} \mathbf{v}^\top\mathbf{I}\mathbf{v}\right] \\
+&\Updownarrow& \nonumber\\
+\argmax_{\mathbf{w},t,\mathbf{z}} \ \ \mathbf{w}^\top\left[\theta_1\mathbf{\bar{x}}\right] -\frac{1}{2}\mathbf{w}^\top\left[\theta_2\mathbf{\Sigma}\right] \mathbf{w} &+& \mathbf{z}^\top\left[\frac{\theta_3}{\lfloor{\alpha N}\rfloor}\mathbf{1}\right] + t \theta_3  - \frac{1}{2} \mathbf{w}^\top \theta_4 \mathbf{I} \mathbf{w} + \theta_4 \mathbf{w}^\top \mathbf{v} \\
+&\Updownarrow& \nonumber\\
+\argmax_{\mathbf{w},t,\mathbf{z}} \ \ \mathbf{w}^\top\left[\theta_1\mathbf{\bar{x}}+ \theta_4 \mathbf{v} \right] &+& \mathbf{z}^\top\left[\frac{\theta_3}{\lfloor{\alpha N}\rfloor}\mathbf{1}\right] + t \theta_3  -\frac{1}{2}\mathbf{w}^\top\left[\theta_2\mathbf{\Sigma} +\theta_4 \mathbf{I} \right] \mathbf{w} \\
+&\Updownarrow& \nonumber\\
+\argmin_{\mathbf{w},t,\mathbf{z}} \ \ - \left[\theta_1\mathbf{\bar{x}}^\top+ \theta_4 \mathbf{v}^\top , \frac{\theta_3}{\lfloor{\alpha N}\rfloor}\mathbf{1}^\top, \theta_3\right] \begin{bmatrix}
+\mathbf{w} \\ \mathbf{z} \\ t
+\end{bmatrix} &+& \frac{1}{2} \begin{bmatrix} 
+\mathbf{w} \\ \mathbf{z} \\ t
+\end{bmatrix}^\top \begin{bmatrix}
+\theta_2\mathbf{\Sigma} +\theta_4 \mathbf{I}  & \mathbf{0} & \mathbf{0} \\ \mathbf{0} & \mathbf{0} & \mathbf{0} \\ \mathbf{0} & \mathbf{0} & \mathbf{0}
+\end{bmatrix}\begin{bmatrix} 
+\mathbf{w} \\ \mathbf{z} \\ t
+\end{bmatrix}\\
+\text{substitution}&\left\Updownarrow\vphantom{\begin{matrix}
+	d:=\left[\theta_1\mathbf{\bar{x}}^\top+ \theta_4 \mathbf{v}^\top , \frac{\theta_3}{\lfloor{\alpha N}\rfloor}\mathbf{1}^\top, \theta_3\right] \\\\
+	D:= \begin{bmatrix}
+	\theta_2\mathbf{\Sigma} +\theta_4 \mathbf{I}  & \mathbf{0} & \mathbf{0} \\ \mathbf{0} & \mathbf{0} & \mathbf{0} \\ \mathbf{0} & \mathbf{0} & \mathbf{0} \\ \mathbf{0} & \mathbf{0} & \mathbf{0}
+	\end{bmatrix}\\\\
+	b:=\left[w,z,t\right]
+	\end{matrix}}\right.&
+\begin{matrix}
+\mathbf{d}:=\left[\theta_1\mathbf{\bar{x}}^\top+ \theta_4 \mathbf{v}^\top , \frac{\theta_3}{\lfloor{\alpha N}\rfloor}\mathbf{1}^\top, \theta_3\right] \\\\
+\mathbf{D}:= \begin{bmatrix}
+\theta_2\mathbf{\Sigma} +\theta_4 \mathbf{I}  & \mathbf{0} & 0 \\ \mathbf{0} & \mathbf{0} & 0 \\ 0 & 0 & 0
+\end{bmatrix} \\\\
+\mathbf{b}:=\left[\mathbf{w},\mathbf{z},t\right]
+\end{matrix}\\
+\argmin_{\mathbf{b}} \ \ -\mathbf{d}^\top \mathbf{b} &+& \frac{1}{2} \mathbf{b}^\top \mathbf{D} \mathbf{b}
+\end{eqnarray}
+As we can see, our objective function can easily be transformed to this canonical quadratic form notation.
+
+\section{Constraints}
+
+In addition to the objective function, we also need to specify the optimization constraints. As we strive to formulate our model as flexible as possible, we shall introduce these constraints in the form of following interchangeable modules:
+\begin{itemize}
+	\item Mandatory constraints - equations \ref{eq:portfolio_optimization:M1a} and \ref{eq:portfolio_optimization:M1b},
+	\item minimum expected return - equation \ref{eq:portfolio_optimization:M2},
+	\item bounds on portfolio weights - equations \ref{eq:portfolio_optimization:M3a} and \ref{eq:portfolio_optimization:M3b},
+	\item bounds on portfolio amounts if portfolio size $\Omega$ is fixed - equations \ref{eq:portfolio_optimization:M4Fa} and \ref{eq:portfolio_optimization:M4Fb},
+	\item equality constraints on portfolio amounts if portfolio size $\Omega$ is variable - equation \ref{eq:portfolio_optimization:M4V}.
+\end{itemize}
+
+\subsection{Mandatory constraints}
+
+The first module contains constraints that are vital for the optimization and always present in any optimization specification. These include the standard constraint on weights summing up to one and a constraint which prohibits short positions in the portfolio:
+
+\begin{align}
+\mathbf{w}^\top \textbf{1}&=1 \tag{M1a} \label{eq:portfolio_optimization:M1a}\\ 
+\mathbf{w} &\geq \textbf{0} \tag{M1b} \label{eq:portfolio_optimization:M1b}
+\end{align}
+
+\subsection{Minimum expected return}
+
+
+The second module is optional and allows investor to demand a given minimum expected portfolio return:
+
+\begin{equation}
+\mathbf{w}^\top \mathbf{\bar{x}} \geq \mathbf{\bar{x}^{\min}}  \tag{M2} \label{eq:portfolio_optimization:M2}
+\end{equation}
+
+
+\subsection{Limits on portfolio weights}
+
+
+The third module contains upper and lower bounds on individual weights. These allow us to forcefully contain a minimum or a maximum proportion of total portfolio in any given asset class. If $w^{\min}_i = w^{\max}_i$ for some element $i\in\{1,\ldots,K\}$, then asset $i$'s proportion in the portfolio is imposed directly:
+
+\begin{align}
+\mathbf{w}&\geq\mathbf{w^{\min}} \tag{M3a} \label{eq:portfolio_optimization:M3a}\\ 
+\mathbf{w}&\leq\mathbf{w^{\max}} \tag{M3b} \label{eq:portfolio_optimization:M3b}
+\end{align}
+
+If an asset class $i$ is supposed to be unconstrained, we can always set $w^{\min}_i = 0$ and $w^{\max}_i = 1$ while maintaining the constraints of other asset classes.
+
+\subsection{Limits on portfolio amounts for fixed $\Omega$}
+
+
+In the fourth module, rather than restricting the individual asset class weights, we restrict the total amount (volume) allowed in each asset class. This module is only available if the overall portfolio size $\Omega$ is fixed:
+
+\begin{align}
+\mathbf{w}&\geq\frac{\mathbf{a^{\min}}}{\Omega} \tag{M4Fa} \label{eq:portfolio_optimization:M4Fa}\\ 
+\mathbf{w}&\leq\frac{\mathbf{a^{\max}}}{\Omega} \tag{M4Fb} \label{eq:portfolio_optimization:M4Fb}
+\end{align}
+
+If an asset class $i$'s amount is supposed to be unconstrained, we can always set $a^{\min}_i = 0$ and $a^{\max}_i = \infty$ while maintaining the constraints of other asset classes.
+
+\subsection{Limits on portfolio amounts for variable $\Omega$}
+
+If the overall portfolio size $\Omega$ is also a control variable in our optimization, we unfortunately cannot include any inequality constraints. The reason behind this is that they would turn our linear-quadratic problem into a more general non-linear problem. Such change would in turn force us to use a more general optimization algorithm and therefore increase the overall computational complexity of the problem. In such cases, investors are advised to focus on relative constraints on $w$ addressed above instead.
+
+Nevertheless, we can still work with equality constraints where $a^{\min}_i = a^{\max}_i$ for some element $i\in\{1,\ldots,K\}$. Therefore, if the amount for some asset classes is supposed to be fixed, we can still achieve that even with variable $\Omega$. Suppose there are $K_{\text{eq}}$ asset classes for which $a^{\min}_i = a^{\max}_i$ such that their amount in the portfolio is fixed and denote the set of their indices by $S_{\text{eq}}$. Then for each asset $i\in S_{\text{eq}}$, it holds that:
+
+\begin{equation}
+w_i = \frac{a^{\min}_i}{\Omega} = \frac{a^{\max}_i}{\Omega} \ \ \  \forall i\in S_{\text{eq}}
+\end{equation}
+
+Solving for $\Omega$ gives us:
+
+\begin{equation}
+\Omega = \frac{a^{\min}_i}{w_i} = \frac{a^{\max}_i}{w_i} \ \ \   \forall i\in S_{\text{eq}}
+\end{equation}
+
+Therefore, the following has to hold for every pair of asset classes with fixed portfolio amounts:
+
+\begin{equation}
+\frac{a^{\min}_i}{w_i} = \frac{a^{\min}_j}{w_j}\ \ \   \forall i,j \in S_{\text{eq}}
+\end{equation}
+
+Reshuffling this equation provides us with the next constraint module, exclusive for a setting with variable portfolio size $\Omega$:
+
+\begin{equation}
+w_i a^{\min}_j - w_j a^{\min}_i = 0 \ \ \   \forall i,j\in\{1,\ldots,N\}, i\neq j : (a^{\min}_i = a^{\max}_i) \cap (a^{\min}_j = a^{\max}_j) \tag{M4V} \label{eq:portfolio_optimization:M4V}
+\end{equation}
+
+For more than two fixed amount asset classes, some of these equality constraints are obviously redundant which we take care of in our implementation.
+
+The bottom line for determining optimal portfolio size with variable $\Omega$ is as follows:
+\begin{itemize}
+	\item If no asset classes amounts are fixed, such that $\forall i\in\{1,\ldots,N\}$ it holds that $a^{\min}_i \neq a^{\max}_i \ \ $, then the overall optimal portfolio size $\Omega$ is set equal to the previous portfolio size.
+	\item If a single asset class $i$'s amount is fixed, we first compute the optimal portfolio weights vector $\mathbf{w^\star}$ without any constraints involving $\Omega$ and then determine the optimal $\Omega$ from this one fixed amount constraint by setting
+	\begin{equation}
+		\Omega := \frac{a^{max}_i}{w^\star_i}. 
+	\end{equation}
+	\item If multiple asset classes have their desired amounts in the portfolio fixed, we include additional constraints according to Equation \ref{eq:portfolio_optimization:M4V}, compute the optimal weights vector $\mathbf{w^\star}$ and then evaluate the overall portfolio size $\Omega$ exactly as in the previous case with $i$ being one of the asset classes present in the equality constraints.
+\end{itemize}
+
+\subsection{Maximum expected shortfall}
+	
+Formulating the following constraint ensures that the conditional value at risk return (the return associated with the expected shortfall) remains higher than $\lambda^{\max}$:
+\begin{equation}
+ t + \frac{1}{\lfloor{\alpha N}\rfloor} \sum_{i=1}^{N} z_i \geq \lambda^{\max} \tag{M5}
+\end{equation}
+
+This property follows directly from the shortfall optimization problem in \ref{eq:shortfall_optimization}. For $\Omega$ fixed as constant, we can also directly limit the overall expected shortfall $\Lambda^{\max}$ amount with the following version of this constraint:
+\begin{equation}
+ - t - \frac{1}{\lfloor{\alpha N}\rfloor} \sum_{i=1}^{N} z_i \leq \frac{\Lambda^{\max}}{\Omega} \tag{M5F}
+\end{equation}
+This 
+
+For a comprehensive guideline to the inclusion of these various modules in the optimization, please refer to the flowchart shown in Figure \ref{fig:flowchart_constraints}.
+
+
+\begin{figure}[!htb]
+	\centering
+	\resizebox{250pt}{700pt}{%
+		\begin{tikzpicture}[font=\small,thick]
+		
+		\node[draw,
+		rounded rectangle,
+		minimum width=2.5cm,
+		minimum height=1cm] (block1) {START};
+		
+		\node[draw,
+		align=center,
+		below=of block1,
+		minimum width=2.5cm,
+		minimum height=1cm
+		] (block3) { Add module M1a \\ Add module M1b };
+		
+		\node[draw,
+		align=center,
+		diamond,
+		below=of block3,
+		minimum width=2.5cm,
+		inner sep=0] (block4) {Minimum \\ expected\\ return?};
+		
+		\node[draw,
+		below right=of block4,
+		minimum width=2.5cm,
+		minimum height=1cm] (block5) { Add module M2};
+		
+		\node[draw,
+		align=center,
+		diamond,
+		below left=of block5,
+		minimum width=2.5cm,
+		inner sep=0] (block6) {Limits \\ on\\ weights?};
+		
+		\node[draw,
+		align=center,
+		below left=of block6,
+		minimum width=2.5cm,
+		minimum height=1cm] (block7) { Add module M3a \\ Add module M3b};
+		
+		\node[draw,
+		align=center,
+		diamond,
+		below right=of block7,
+		minimum width=2.5cm,
+		inner sep=0] (block8) {Limits \\on \\amounts?};
+		
+		\node[draw,
+		align=center,
+		diamond,
+		below right=of block8,
+		minimum width=2.5cm,
+		inner sep=0] (block9) {Fixed \\ portfolio \\ size?};
+		
+		\node[draw,
+		align=center,
+		below right=of block9,
+		minimum width=2.5cm,
+		minimum height=1cm] (block10) { Add module M4Fa \\ Add module M4Fb};
+		
+		\node[draw,
+		align=center,
+		below =2.5cm of block9,
+		minimum width=2.5cm,
+		minimum height=1cm] (block11) { Add module M4V};
+		
+		\node[draw,
+		align=center,
+		diamond,
+		below = 6cm of block8,
+		minimum width=2.5cm,
+		inner sep=0] (block12) {Maximum \\ expected \\ shortfall?};
+		
+		\node[draw,
+		align=center,
+		below left=of block12,
+		minimum width=2.5cm,
+		minimum height=1cm] (block13) { Add module M5};
+		
+		\node[draw,
+		align=center,
+		diamond,
+		below =of block13,
+		minimum width=2.5cm,
+		inner sep=0] (block14) {Fixed \\ portfolio \\ size?};
+
+		\node[draw,
+		align=center,
+		below =of block14,
+		minimum width=2.5cm,
+		minimum height=1cm] (block15) { Add module M5F};
+		
+		% Return block
+		\node[draw,
+		align=center,
+		rounded rectangle,
+		below =7.5cm of block12,
+		minimum width=2.5cm,
+		minimum height=1cm,] (block16) {Constraints \\specified};
+		
+		% Arrows
+		\draw[-latex]
+		(block1) edge (block3)
+		(block3) edge (block4);
+		
+		\draw[-latex] (block4) edge
+		node[pos=0.4,fill=white,inner sep=2pt]{No}(block6);
+		
+		\draw[-latex] (block4) -| (block5)
+		node[pos=0.25,fill=white,inner sep=0]{Yes};
+		
+		\draw[-latex] (block5) |- (block6);
+		
+		\draw[-latex] (block6) -| (block7)
+		node[pos=0.25,fill=white,inner sep=0]{Yes};
+		
+		\draw[-latex] (block6) edge
+		node[pos=0.4,fill=white,inner sep=2pt]{No}(block8);
+		
+		\draw[-latex] (block7) |- (block8);
+		
+		\draw[-latex] (block8) -| (block9)
+		node[pos=0.25,fill=white,inner sep=0]{Yes};
+		
+		\draw[-latex] (block9) -| (block10)
+		node[pos=0.25,fill=white,inner sep=0]{Yes};
+		
+		\draw[-latex] (block8) edge
+		node[pos=0.4,fill=white,inner sep=2pt]{No}(block12);
+		
+		\draw[-latex] (block9) edge
+		node[pos=0.4,fill=white,inner sep=2pt]{No}(block11);
+		
+		\draw[-latex] (block10) |- (block12);
+		\draw[-latex] (block11) |- (block12);
+		
+		\draw[-latex] (block12) -| (block13)
+		node[pos=0.25,fill=white,inner sep=0]{Yes};
+		
+		\draw[-latex] (block12) edge
+		node[pos=0.2,fill=white,inner sep=2pt]{No}(block16);
+		
+		\draw[-latex]
+		(block13) edge (block14);
+		
+		\draw[-latex] (block14) edge
+		node[pos=0.4,fill=white,inner sep=2pt]{Yes}(block15);
+		
+		\draw[-latex] (block14) -| (block16)
+		node[pos=0.25,fill=white,inner sep=0]{No};
+		
+		\draw[-latex] (block15) |- (block16);
+		
+		\end{tikzpicture}
+	}
+	\caption{A flowchart depicting the inclusion of various portfolio constraints depending on investor preferences.}
+	\label{fig:flowchart_constraints}
+\end{figure}	
+
+
+
+
+
+
+
+

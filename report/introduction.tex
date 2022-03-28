@@ -1,0 +1,18 @@
+\chapter*{Introduction}
+\label{chapter:introduction}
+
+This report summarizes key concepts and ideas related to NBS's strategic asset allocation. As is common in the literature on portfolio allocation, we shall divide the process of creating an optimal portfolio according to investor preferences into two consecutive steps:
+\begin{itemize}
+	\item Estimation of future asset returns.
+	\item Solving a portfolio optimization problem given the prediction from step 1.
+\end{itemize}
+To make our approach as modular as possible, we will threat these two tasks independently, allowing the future users of our pipeline to use them separately. In other words, if someone were to have their own prediction regarding future returns, they are welcome to plug this prediction into our optimization module and use our framework solely for finding an efficient portfolio allocation. Likewise, if one were to have their own portfolio optimization algorithm prepared, they are welcome to use the first part of our approach only (generate future return predictions using our framework) and then plug the predicted returns into their own optimization algorithm. Keeping these two concepts independent therefore gives us further flexibility and freedom in model choice.
+
+There are 4 chapters in this report. Chapter 1 describes estimation of future asset returns from historical data. Chapter 2 then uses this prediction to formulate a modular and flexible portfolio allocation strategy. Finally, Chapter 3 summarizes the graphical user interface used to achieve tasks from previous chapters, describes the data pipeline structure and other technical details.
+
+
+% Reason
+
+% Aim
+
+% Structure
