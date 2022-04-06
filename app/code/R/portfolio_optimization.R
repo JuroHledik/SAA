@@ -134,8 +134,8 @@ portfolio_optimization <- function(optimization_inputs){
   upper_limit_amounts = as.vector(constraints_df$vol_max)
   v = as.vector(constraints_df$vol_prev)
   
-  Sigma_prev = sum(v)
-  v = v/Sigma_prev
+  Omega_prev = sum(v)
+  v = v/Omega_prev
   
   
   utility_functions = c("MaxExpReturn","MinVariance","MinExpShortfallAtLevelAMaturityB")
@@ -428,6 +428,10 @@ portfolio_optimization <- function(optimization_inputs){
       for (k in 1:K) {
         if (!is.na(hard_constraints_amount_df["equal_to", k])) {
           Omega = hard_constraints_amount_df["equal_to", k] / w[k]
+          break
+        }
+        if (k==K) {
+          Omega = Omega_prev
         }
       }
       

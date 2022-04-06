@@ -31,6 +31,7 @@ library(moments)
 library(PearsonDS)
 library(readxl)
 library(Rfast)
+library(sqldf)
 library(stringr)
 library(TSP)
 library(VineCopula)
@@ -62,12 +63,25 @@ return_simulation <- function(return_simulation_inputs){
   # df <- read_excel(paste0(path_data,"indexy1.xls"))
   df = read.csv(paste0(path_data,"historical_daily_returns.csv"), header=TRUE, sep=";", na.strings=c("","NA"))
   df = df[complete.cases(df),]
+  
+  df_euribor = read.csv(paste0(path_data,"euribor.csv"), header=TRUE, sep=";", na.strings=c("","NA"))
+  df_euribor = df_euribor[complete.cases(df_euribor),]
 
   for (k in 2:ncol(df)) {
     df[,k] <- gsub(',', '.', df[,k])
   }
+  
+  for (k in 2:ncol(df_euribor)) {
+    df_euribor[,k] <- gsub(',', '.', df_euribor[,k])
+  }
+  
   df[,2:ncol(df)] <- sapply(df[,2:ncol(df)], as.character)
   df[,2:ncol(df)] <- sapply(df[,2:ncol(df)], as.numeric)
+  df_euribor[,2] <- sapply(df_euribor[,2], as.character)
+  df_euribor[,2] <- sapply(df_euribor[,2], as.numeric)
+  
+  #Get daily euribor rate:
+  df_euribor$Rate = df_euribor$Rate/100/365
 
   #Create a dataset with the relevant frequency:  
   df$day =  sub("^0+", "", substr(df$Date,1,2))
@@ -76,28 +90,43 @@ return_simulation <- function(return_simulation_inputs){
   df$Date = format(as.Date(ymd(paste0(df$year,"-",df$month, "-", df$day))))
   df$week = lubridate::week(ymd(df$Date))
   df$quarter = lubridate::quarter(ymd(df$Date))  
+  
+  df_euribor$day =  sub("^0+", "", substr(df_euribor$Date,1,2))
+  df_euribor$month =  sub("^0+", "", substr(df_euribor$Date,4,5))
+  df_euribor$year = substr(df_euribor$Date,7,10)
+  df_euribor$Date = format(as.Date(ymd(paste0(df_euribor$year,"-",df_euribor$month, "-", df_euribor$day))))
+  df_euribor$week = lubridate::week(ymd(df_euribor$Date))
+  df_euribor$quarter = lubridate::quarter(ymd(df_euribor$Date))
 
-  df_hist = df[,1:(ncol(df)-5)]
+  #Subtract the euribor from all asset classes
+  df = sqldf("select a.*, b.Rate from df a left join df_euribor b on a.Date=b.Date")
+  df[,2:(ncol(df)-6)] = df[,2:(ncol(df)-6)] - df[,"Rate"]
+  
+  #ASW portfolio is already currency hedged, no need to subtract the euribor, add it back:
+  df[,"X1.5.Year.Global.Non.Sov..ICE..IR.hdg..IRS"] = df[,"X1.5.Year.Global.Non.Sov..ICE..IR.hdg..IRS"] + df[,"Rate"]
+  df = df[complete.cases(df),]
+  
+  df_hist = df[,1:(ncol(df)-6)]
   
   temp = df
-  temp[,2:(ncol(temp)-5)] = temp[,2:(ncol(temp)-5)] + 1
-  print(frequency)
+  temp[,2:(ncol(temp)-6)] = temp[,2:(ncol(temp)-6)] + 1
+  frequency="monthly"
   if (frequency=="daily") {
-    temp = temp[,2:(ncol(temp)-5)]
+    temp = temp[,2:(ncol(temp)-6)]
     maturities = maturities_daily
   } else {
     if (frequency=="weekly") {
-      temp = aggregate(temp[,2:(ncol(df)-5)],list(temp$year, temp$week), prod)
+      temp = aggregate(temp[,2:(ncol(df)-6)],list(temp$year, temp$week), prod)
       temp = temp[,3:ncol(temp)]
       maturities = maturities_weekly
     } else {
       if (frequency=="monthly") {
-        temp = aggregate(temp[,2:(ncol(df)-5)],list(temp$year, temp$month), prod)
+        temp = aggregate(temp[,2:(ncol(df)-6)],list(temp$year, temp$month), prod)
         temp = temp[,3:ncol(temp)]
         maturities = maturities_monthly
       } else {
         if (frequency=="quarterly") {
-          temp = aggregate(temp[,2:(ncol(df)-5)],list(temp$year, temp$quarter), prod)
+          temp = aggregate(temp[,2:(ncol(df)-6)],list(temp$year, temp$quarter), prod)
           temp = temp[,3:ncol(temp)]
           maturities = maturities_quarterly
         }
@@ -110,7 +139,7 @@ return_simulation <- function(return_simulation_inputs){
   K = ncol(df)
   
   # Custom asset names:
-  constraints_df = data.frame(read_excel(paste0(path_data,"portfolio_constraints.xlsx")))
+  constraints_df = read.csv(paste0(path_data,"portfolio_constraints.csv"), header=TRUE, sep=";", colClasses = c(vol_max = "character") )
   names(df) = constraints_df$asset
   
   asset_names = names(df)

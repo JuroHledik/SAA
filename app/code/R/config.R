@@ -5,7 +5,7 @@ path_model_output_historical_returns = paste0(path_root, "model_output/historica
 path_model_output_simulated_returns = paste0(path_root, "model_output/simulated_returns/")
 path_model_output_copula_structure = paste0(path_root, "model_output/copula_structure/")
 
-eps = 0.000000000001
+eps = 0.0000001
 
 # sample_sizes = c(100,500)
 sample_sizes = c(100,500,1000,2000,5000,10000,50000,100000)
