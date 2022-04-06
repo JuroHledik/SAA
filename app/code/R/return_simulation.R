@@ -110,7 +110,6 @@ return_simulation <- function(return_simulation_inputs){
   
   temp = df
   temp[,2:(ncol(temp)-6)] = temp[,2:(ncol(temp)-6)] + 1
-  frequency="monthly"
   if (frequency=="daily") {
     temp = temp[,2:(ncol(temp)-6)]
     maturities = maturities_daily
