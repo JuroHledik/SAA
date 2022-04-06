@@ -69,6 +69,11 @@ shinyServer(function(input, output, session){
             icon = icon("question-circle-o"), color = "light-blue"
     )
   })
+  output$button_github <- renderInfoBox({
+    infoBox("", a("Github", href= "https://github.com/JuroHledik/SAA"),
+            icon = icon("github"), color = "light-blue"
+    )
+  })
   
   
   # Dynamic UI by per method --------------------------
@@ -222,7 +227,7 @@ shinyServer(function(input, output, session){
     checkboxGroupInput(
       "invisible_columns", NULL, 
       choices = c("number_of_records" = "number_of_records","theta1" = "theta1", "theta2" = "theta2", "theta3" = "theta3", "theta4" = "theta4", "N_computation" = "N","N_visual" = "N_visual", "frequency" = "frequency", "return_model" = "return_model", "maturity" = "maturity",
-                  "alpha" = "alpha", "Omega_method" = "Omega_method", "Omega" = "Omega", "min_CVaR_return" = "min_CVaR_return", "max_CVaR" = "max_CVaR", 
+                  "alpha" = "alpha", "Omega_method" = "Omega_method", "Omega" = "Omega", "min_return" = "min_return", "min_CVaR_return" = "min_CVaR_return", "max_CVaR" = "max_CVaR", 
                   "CVaR_return" = "CVaR_return", "CVaR_vol" = "CVaR_vol",
                   "P_neg_return" = "P_neg_return", "expected_profit" = "expected_profit",
                   "expected_return" = "expected_return", "variance" = "variance", "expected_return_pa" = "expected_return_pa", "w" = "w"), 

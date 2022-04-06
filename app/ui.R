@@ -12,7 +12,8 @@ shinyUI(
         menuItem("Copula Visualization", icon = icon("code-branch"), tabName = "copula_visualization"),
         menuItem("Portfolio Optimization", icon = icon("calculator"), tabName = "portfolio_optimization"),
         menuItem("In-sample Evaluation", icon = icon("chart-line"), tabName = "insample_evaluation"),
-        menuItem("About", icon = icon("question-circle-o"), tabName = "menu_about")
+        menuItem("About", icon = icon("question-circle-o"), tabName = "menu_about"),
+        menuItem("  Github", icon = icon("github"), href = "https://github.com/JuroHledik/SAA")
       )
     ),
     dashboardBody(
@@ -46,12 +47,13 @@ shinyUI(
                          column(width = 2, align="center")
                 ),
                 fluidRow(class = "text-center",
-                         column(width = 3, align="center"),
+                         column(width = 2, align="center"),
                          column(width = 8, align="center",
                                 infoBoxOutput("button_upload"),
-                                infoBoxOutput("button_menu_about")
+                                infoBoxOutput("button_menu_about"),
+                                infoBoxOutput("button_github")
                          ),
-                         column(width = 3, align="center")
+                         column(width = 2, align="center")
                 )
                 
         ),

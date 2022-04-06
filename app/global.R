@@ -48,8 +48,8 @@ library(GGally)
 library(memuse)
 library(ulimit)
 
-path_root = "/media/juro/DATA/Work/NBS/PortfolioOptimization/app/"
-# path_root = ""
+# path_root = "//media/juro/DATA/Work/NBS/PortfolioOptimization/app/"
+path_root = ""
 # path_root = "C:/Users/jhledik/Desktop/PortfolioOptimization/"
 
 source(paste0(path_root,"utils/theme.R"))
