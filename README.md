@@ -1,4 +1,4 @@
-# Strategig Asset Allocation (SAA)
+# Strategic Asset Allocation (SAA)
 ## _by Juraj Hledik_
 
 SAA is a comprehensive solution for investors looking to diversify their portfolio according to their preferences. For a detailed description of the math, see the folder /report. The framework consists of three modular parts:
