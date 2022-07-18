@@ -52,6 +52,8 @@ return_simulation <- function(return_simulation_inputs){
   N_simulation = 10 * max(sample_sizes)
   frequency = return_simulation_inputs$frequency
   selected_copula_types = return_simulation_inputs$selected_copula_types
+  subtract_EURIBOR = return_simulation_inputs$subtract_EURIBOR
+  
   selected_copula_codes = allowed_copula_codes[allowed_copula_types %in% selected_copula_types]
 
 
@@ -99,11 +101,18 @@ return_simulation <- function(return_simulation_inputs){
   df_euribor$quarter = lubridate::quarter(ymd(df_euribor$Date))
 
   #Subtract the euribor from all asset classes
+  print_message_with_time(paste0("Subtracting EURIBOR from all asset classes..."))
   df = sqldf("select a.*, b.Rate from df a left join df_euribor b on a.Date=b.Date")
   df[,2:(ncol(df)-6)] = df[,2:(ncol(df)-6)] - df[,"Rate"]
   
   #ASW portfolio is already currency hedged, no need to subtract the euribor, add it back:
-  df[,"X1.5.Year.Global.Non.Sov..ICE..IR.hdg..IRS"] = df[,"X1.5.Year.Global.Non.Sov..ICE..IR.hdg..IRS"] + df[,"Rate"]
+  for (i in 1:length(subtract_EURIBOR)) {
+    if (subtract_EURIBOR[i]==0) {
+      print_message_with_time(paste0("Adding back the EURIBOR rate to asset number ", as.character(i), "..."))
+      df[,i] = df[,i] + df[,"Rate"]    
+    }
+  }
+  
   df = df[complete.cases(df),]
   
   df_hist = df[,1:(ncol(df)-6)]
@@ -215,7 +224,7 @@ return_simulation <- function(return_simulation_inputs){
     print_message_with_time(paste0("UNIFORM TRANSFORMATION: Processing asset ", k, " of ", K, "..."))
     #Load the asset class observations:
     x =  as.vector(df[[asset_names[k]]])
-
+    
     #Find its mean, variance, rate, shape, skewness and kurtosis:
     x_mean <- mean(x)
     x_var <- var(x)
@@ -271,7 +280,7 @@ return_simulation <- function(return_simulation_inputs){
     df_U[[asset_names[k]]] = U
     
     #Save the histogram to see how uniform the data is:
-
+    
     png(paste0(path_model_output_figures,"marginal_distributions_uniform/",frequency,"/", asset_names_no_escape[k],".png"), width = 800, height = 800)
     hist(U, # histogram
          col = "peachpuff", # column color

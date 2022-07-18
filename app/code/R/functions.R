@@ -4,6 +4,7 @@ print_message_with_time <- function(printed_message) {
 }
 
 determine_maturity<- function(maturity_text, frequency) {
+  maturity = NA
   if (frequency=="daily") {
     maturity = maturities_daily[maturities_choices_daily==maturity_text]
   } else {
