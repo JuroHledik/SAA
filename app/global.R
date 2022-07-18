@@ -16,6 +16,7 @@ temp = memuse::Sys.meminfo(compact.free=FALSE)
 if(.Platform$OS.type == "windows") {
   memory.limit(size = temp$totalram@size*1000/2)
 } else if(.Platform$OS.type == "unix") {
+  library(ulimit)
   ulimit::memory_limit(temp$totalram@size*1000/2)
 }
 
@@ -46,7 +47,6 @@ library(tidyverse)
 library(markdown)
 library(GGally)
 library(memuse)
-library(ulimit)
 
 # path_root = "//media/juro/DATA/Work/NBS/PortfolioOptimization/app/"
 path_root = ""
@@ -58,3 +58,5 @@ source(paste0(path_root,"utils/utils.R"))
 
 source(paste0(path_root, "code/R/return_simulation.R"))
 source(paste0(path_root, "code/R/portfolio_optimization.R"))
+
+options(shiny.maxRequestSize = 30*1024^2)

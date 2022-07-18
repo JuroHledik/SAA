@@ -3,8 +3,15 @@ shinyServer(function(input, output, session){
   id <- NULL
   
   #Import asset constraints:
-  # constraints_df = data.frame(read_excel(paste0(path_data,"portfolio_constraints.xlsx")))
   constraints_df = read.csv(paste0(path_data,"portfolio_constraints.csv"), header=TRUE, sep=";", colClasses = c(vol_max = "character") )
+  
+  #Set the advanced settings table:
+  advanced_settings_df = constraints_df[,1:2]
+  advanced_settings_df$include_in_shortfall_optimization = 1
+  advanced_settings_df$include_in_shortfall_optimization[advanced_settings_df$asset == "Gold"] <- 0
+  advanced_settings_df$subtract_EURIBOR = 1
+  advanced_settings_df$subtract_EURIBOR[advanced_settings_df$asset == "ASW"] <- 0
+  
   asset_names = constraints_df$asset
   asset_names_no_escape = str_replace(asset_names,"/", " ")
   K = length(asset_names_no_escape)
@@ -25,6 +32,8 @@ shinyServer(function(input, output, session){
   values$w_df <- data.frame(index = numeric(), w=numeric(), record_number=numeric(), stringsAsFactors=FALSE)
   
   values$constraints_df = constraints_df
+  values$advanced_settings_df = advanced_settings_df
+
   
   # Global values --------------------------
   id_notification <- ""
@@ -78,54 +87,65 @@ shinyServer(function(input, output, session){
   
   # Dynamic UI by per method --------------------------
   
-  output$ui_portfolio_optimization_maturities <- renderUI({
-    if(input$portfolio_optimization_frequency == "daily"){
+  output$ui_portfolio_optimization_frequencies <- renderUI({
+    if(input$return_model!="Custom") {
       column(4,
-             p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
-               selectInput("maturity", NULL,
-                           choices = maturities_choices_daily, selected = "1 year"
-               ),
-               tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
+             p(HTML("<b>Frequency</b>"),span(shiny::icon("info-circle"), id = "info_frequency"),
+               radioButtons('portfolio_optimization_frequency', NULL, choices  = frequencies, selected = "monthly", inline = F),
+               tippy::tippy_this(elementId = "info_frequency",tooltip = "Frequency of return observation.",placement = "right")
              )
       )
-    } else {
-      if(input$portfolio_optimization_frequency == "weekly"){
+    }
+  })
+  
+  output$ui_portfolio_optimization_maturities <- renderUI({
+    if(input$return_model!="Custom") {
+      if(input$portfolio_optimization_frequency == "daily"){
         column(4,
                p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
                  selectInput("maturity", NULL,
-                             choices = maturities_choices_weekly, selected = "1 year"
+                             choices = maturities_choices_daily, selected = "1 year"
                  ),
                  tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
                )
         )
       } else {
-        if(input$portfolio_optimization_frequency == "monthly"){
+        if(input$portfolio_optimization_frequency == "weekly"){
           column(4,
                  p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
                    selectInput("maturity", NULL,
-                               choices = maturities_choices_monthly, selected = "1 year"
+                               choices = maturities_choices_weekly, selected = "1 year"
                    ),
                    tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
                  )
           )
         } else {
-          if(input$portfolio_optimization_frequency == "quarterly"){
+          if(input$portfolio_optimization_frequency == "monthly"){
             column(4,
                    p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
                      selectInput("maturity", NULL,
-                                 choices = maturities_choices_quarterly, selected = "1 year"
+                                 choices = maturities_choices_monthly, selected = "1 year"
                      ),
                      tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
                    )
             )
+          } else {
+            if(input$portfolio_optimization_frequency == "quarterly"){
+              column(4,
+                     p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
+                       selectInput("maturity", NULL,
+                                   choices = maturities_choices_quarterly, selected = "1 year"
+                       ),
+                       tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
+                     )
+              )
+            }
           }
-        }
-      }  
+        }  
+      }
     }
   })
 
-  
-  
   output$copula_structure_text <- renderText({
     filePath <- paste0(path_model_output_copula_structure,input$copula_visualization_frequency, "/", "summary.txt")
     fileText <- paste(readLines(filePath), collapse = "\n")
@@ -161,6 +181,37 @@ shinyServer(function(input, output, session){
     #write values to reactive
     values$constraints_df[i,j+1] <- k
     print(values$constraints_df)
+  })
+  
+  #output the advanced settings datatable (and make it editable)
+  output$advanced_settings_datatable <- renderDT({
+    DT::datatable(values$advanced_settings_df,
+                  editable = TRUE,
+                  rownames= FALSE,
+                  options = list(pagingType = NULL,
+                                 bPaginate=FALSE,
+                                 searching = FALSE,
+                                 ordering=FALSE,
+                                 info=FALSE,
+                                 lengthChagne=FALSE,
+                                 columnDefs = list(list(className = 'dt-center', targets = 0:(ncol(values$advanced_settings_df)-1)))
+                  )
+    ) %>%
+      formatStyle(
+        'ID',
+        backgroundColor = styleEqual(1:K, col_assets)
+      )
+  })
+  observeEvent(input$advanced_settings_datatable_cell_edit, {
+    #get values
+    info = input$advanced_settings_datatable_cell_edit
+    i = as.numeric(info$row)
+    j = as.numeric(info$col)
+    k = as.numeric(info$value)
+    
+    #write values to reactive
+    values$advanced_settings_df[i,j+1] <- k
+    print(values$advanced_settings_df)
   })
   
   #render plot
@@ -228,11 +279,11 @@ shinyServer(function(input, output, session){
       "invisible_columns", NULL, 
       choices = c("number_of_records" = "number_of_records","theta1" = "theta1", "theta2" = "theta2", "theta3" = "theta3", "theta4" = "theta4", "N_computation" = "N","N_visual" = "N_visual", "frequency" = "frequency", "return_model" = "return_model", "maturity" = "maturity",
                   "alpha" = "alpha", "Omega_method" = "Omega_method", "Omega" = "Omega", "min_return" = "min_return", "min_CVaR_return" = "min_CVaR_return", "max_CVaR" = "max_CVaR", 
-                  "CVaR_return" = "CVaR_return", "CVaR_vol" = "CVaR_vol",
+                  "CVaR_return" = "CVaR_return", "CVaR_vol" = "CVaR_vol", "CVaR_return_A" = "CVaR_return_A", "CVaR_vol_A" = "CVaR_vol_A",
                   "P_neg_return" = "P_neg_return", "expected_profit" = "expected_profit",
                   "expected_return" = "expected_return", "variance" = "variance", "expected_return_pa" = "expected_return_pa", "w" = "w"), 
-      selected = c("number_of_records", "theta1","theta2","theta3","theta4","N","N_visual", "frequency", "return_model", "maturity",
-                    "Omega_method", "Omega", "CVaR_return", "CVaR_vol", 
+      selected = c("number_of_records", "theta1","theta2","theta3","theta4", "frequency", "return_model", "maturity",
+                    "Omega_method", "Omega", "CVaR_return", "CVaR_vol", "CVaR_return_A", "CVaR_vol_A",
                    "P_neg_return", "expected_profit", "expected_return", "variance" ),
       inline = T
     )
@@ -248,6 +299,7 @@ shinyServer(function(input, output, session){
       return_simulation_inputs = list()
       return_simulation_inputs$frequency = input$return_simulation_frequency
       return_simulation_inputs$selected_copula_types = input$selected_copula_types
+      return_simulation_inputs$subtract_EURIBOR = values$advanced_settings_df$subtract_EURIBOR
       
       return_simulation(return_simulation_inputs)
 
@@ -316,6 +368,9 @@ shinyServer(function(input, output, session){
     optimization_inputs$frequency = frequency
     optimization_inputs$return_model = return_model
     
+    print(values)
+    optimization_inputs$include_in_shortfall_optimization = values$advanced_settings_df$include_in_shortfall_optimization
+    
     
     #Optimize BITCH! :)
     results = portfolio_optimization(optimization_inputs)
@@ -333,10 +388,12 @@ shinyServer(function(input, output, session){
       Omega = round(results$Omega)
       cvar_return = paste0(as.character(round(results$cvar_return,4)*100),"%")
       cvar_vol = round(results$cvar_vol,2)
+      cvar_return_A = paste0(as.character(round(results$cvar_return_A,4)*100),"%")
+      cvar_vol_A = round(results$cvar_vol_A,2)
       P_neg_return = paste0(as.character(round(results$P_neg_return,4)*100),"%")
       expected_profit = round(results$expected_profit,2)
-      expected_return = paste0(as.character(round(results$expected_return,4)*100),"%")
-      expected_return_pa = paste0(as.character(round(results$expected_return_pa,4)*100),"%")    
+      expected_return = paste0(as.character(round(results$expected_return,8)*100),"%")
+      expected_return_pa = paste0(as.character(round(results$expected_return_pa,8)*100),"%")    
       variance = results$variance
       
       # save
@@ -359,6 +416,8 @@ shinyServer(function(input, output, session){
                                      expected_return = expected_return,
                                      CVaR_return = cvar_return,
                                      CVaR_vol = cvar_vol,
+                                     CVaR_return_A = cvar_return_A,
+                                     CVaR_vol_A = cvar_vol_A,
                                      P_neg_return = P_neg_return,
                                      expected_profit = expected_profit,
                                      variance = variance,
@@ -454,6 +513,8 @@ shinyServer(function(input, output, session){
       mutate(w = cell_spec(w, color = "blue")) %>%
       mutate(CVaR_return = cell_spec(CVaR_return, color = "blue")) %>%
       mutate(CVaR_vol = cell_spec(CVaR_vol, color = "blue")) %>%
+      mutate(CVaR_return_A = cell_spec(CVaR_return_A, color = "blue")) %>%
+      mutate(CVaR_vol_A = cell_spec(CVaR_vol_A, color = "blue")) %>%
       mutate(P_neg_return = cell_spec(P_neg_return, color = "blue")) %>%
       mutate(expected_profit = cell_spec(expected_profit, color = "blue")) %>%
       mutate(expected_return = cell_spec(expected_return, color = "blue")) %>%
@@ -490,13 +551,14 @@ shinyServer(function(input, output, session){
     df_temp$asset = factor(df_temp$index)
     df_temp$record_number = factor(df_temp$record_number)
     g <- ggplot(df_temp, aes(fill=asset, y=w, x=record_number)) + 
+    #g <- ggplot(df_temp, aes(fill=asset, y=w, x=asset_names)) + 
       geom_bar(position="fill", stat="identity") +
       theme(plot.margin=grid::unit(c(0,0,0,0), "mm")) + 
       scale_y_continuous(limits = c(0, 1)) +
       scale_fill_manual(values = col_assets) +
       labs(y = "Portfolio weights") +
       labs(x = "Record number")
-    p <- ggplotly(g) %>% layout(legend = list(x = 0.8, y = 0.9)) %>% config(displayModeBar = F)
+    p <- ggplotly(g) %>% layout(legend = list(x = 0.8, y = 0.9)) %>% config(displayModeBar = F) 
     p
   })
   
@@ -1063,6 +1125,41 @@ output$return_visualization_correlations_plot <- renderPlotly({
     
   })
   
+  output$file_upload_table_user_imported_returns <- renderTable({
+    
+    # input$file1 will be NULL initially. After the user selects
+    # and uploads a file, head of that data file by default,
+    # or all rows if selected, will be shown.
+    
+    req(input$file_user_imported_returns)
+    
+    # when reading semicolon separated files,
+    # having a comma separator causes `read.csv` to error
+    tryCatch(
+      {
+        df <- read.csv(input$file_user_imported_returns$datapath,
+                       header = input$header_user_imported_returns,
+                       sep = input$sep_user_imported_returns
+        )
+        write.table(df,paste0(path_data,"user_imported_returns.csv"), row.names = FALSE, sep=";")
+        df_sim = df
+        
+        maturity_text = input$maturity_user_imported_returns
+        conversion_constant = frequencies_conversion_daily[maturities_choices_daily==maturity_text]
+        df_sim_pa = as.data.frame((df_sim + 1) ^ conversion_constant) - 1  
+        
+        save(df_sim, df_sim_pa, file = paste0(path_model_output_user_imported_returns,"user_imported_returns.Rdata"))
+      },
+      error = function(e) {
+        # return a safeError if a parsing error occurs
+        stop(safeError(e))
+      }
+    )
+    
+    return(head(df))
+    
+  })
+  
   output$file_upload_table_constraints <- renderTable({
     
     # input$file1 will be NULL initially. After the user selects
@@ -1093,7 +1190,7 @@ output$return_visualization_correlations_plot <- renderPlotly({
     else {
       return(df)
     }
-    
+
   })
   
   

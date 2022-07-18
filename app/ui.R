@@ -12,6 +12,7 @@ shinyUI(
         menuItem("Copula Visualization", icon = icon("code-branch"), tabName = "copula_visualization"),
         menuItem("Portfolio Optimization", icon = icon("calculator"), tabName = "portfolio_optimization"),
         menuItem("In-sample Evaluation", icon = icon("chart-line"), tabName = "insample_evaluation"),
+        menuItem("Advanced settings", icon = icon("radiation"), tabName = "advanced_settings"),
         menuItem("About", icon = icon("question-circle-o"), tabName = "menu_about"),
         menuItem("  Github", icon = icon("github"), href = "https://github.com/JuroHledik/SAA")
       )
@@ -59,7 +60,7 @@ shinyUI(
         ),
         tabItem(tabName = "file_upload",
                 fluidRow(
-                  column(width = 6,
+                  column(width = 4,
                          box(title = "Historical returns", width = 12, solidHeader = T, status = "primary",
                              column(width=4,
                                     # Input: Select a file ----
@@ -75,7 +76,7 @@ shinyUI(
                                                  choices = c(Comma = ",",
                                                              Semicolon = ";",
                                                              Tab = "\t"),
-                                                 selected = ";")                          
+                                                 selected = ",")                          
                              ),
                              column(width=4,
                                     # Input: Select number of rows to display ----
@@ -86,7 +87,7 @@ shinyUI(
                              )
                          )
                   ),
-                  column(width = 6,
+                  column(width = 4,
                          box(title = "Portfolio constraints", width = 12, solidHeader = T, status = "primary",
                              column(width=4,
                                     # Input: Select a file ----
@@ -102,7 +103,7 @@ shinyUI(
                                                  choices = c(Comma = ",",
                                                              Semicolon = ";",
                                                              Tab = "\t"),
-                                                 selected = ";")                          
+                                                 selected = ",")                          
                              ),
                              column(width=4,
                                     # Input: Select number of rows to display ----
@@ -110,6 +111,34 @@ shinyUI(
                                                  choices = c(Head = "head",
                                                              All = "all"),
                                                  selected = "all")                     
+                             )
+                         )
+                  ),
+                  column(width = 4,
+                         box(title = "User imported returns", width = 12, solidHeader = T, status = "primary",
+                             column(width=4,
+                                    # Input: Select a file ----
+                                    fileInput("file_user_imported_returns", "Choose CSV File",
+                                              multiple = FALSE,
+                                              accept = c("text/csv",
+                                                         "text/comma-separated-values,text/plain",
+                                                         ".csv")),
+                                    checkboxInput("header_user_imported_returns", "Header", TRUE)                               
+                             ),
+                             column(width=4,
+                                    radioButtons("sep_user_imported_returns", "Separator",
+                                                 choices = c(Comma = ",",
+                                                             Semicolon = ";",
+                                                             Tab = "\t"),
+                                                 selected = ",")                          
+                             ),
+                             column(width=4,
+                                   p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity_user_imported_returns"),
+                                     selectInput("maturity_user_imported_returns", NULL,
+                                                 choices = maturities_choices_daily, selected = "1 year"
+                                     ),
+                                     tippy::tippy_this(elementId = "info_maturity_user_imported_returns",tooltip = "Maturity horizon",placement = "right")
+                                   )
                              )
                          )
                   )
@@ -122,6 +151,9 @@ shinyUI(
                                ),
                                column(width=12,
                                       tableOutput("file_upload_table_returns")                               
+                               ),
+                               column(width=12,
+                                      tableOutput("file_upload_table_user_imported_returns")                               
                                )
                                          
                            )
@@ -288,19 +320,14 @@ shinyUI(
                          fluidRow(
                            box(title = "Returns", width = 12, solidHeader = T, status = "primary", collapsible = T, collapsed = F,
                                fluidRow(
-                                 uiOutput("ui_portfolio_optimization_maturities"),
                                  column(4,
-                                        p(HTML("<b>Frequency</b>"),span(shiny::icon("info-circle"), id = "info_frequency"),
-                                          radioButtons('portfolio_optimization_frequency', NULL, choices  = frequencies, selected = "monthly", inline = F),
-                                          tippy::tippy_this(elementId = "info_frequency",tooltip = "Frequency of return observation.",placement = "right")
+                                        p(HTML("<b>Model</b>"),span(shiny::icon("info-circle"), id = "info_return_models"),
+                                          radioButtons('return_model', NULL, choices  = return_models, selected = "Pearson", inline = F),
+                                          tippy::tippy_this(elementId = "info_return_models", tooltip = "Select which return prediction model to use.", placement = "right")
                                         )
                                  ),
-                                 column(4,
-                                           p(HTML("<b>Model</b>"),span(shiny::icon("info-circle"), id = "info_return_models"),
-                                             radioButtons('return_model', NULL, choices  = return_models, selected = "Pearson", inline = F),
-                                             tippy::tippy_this(elementId = "info_return_models", tooltip = "Select models for which you'd like to generate returns.", placement = "right")
-                                           )
-                                 )
+                                 uiOutput("ui_portfolio_optimization_frequencies"),
+                                 uiOutput("ui_portfolio_optimization_maturities"),
                                  # ,
                                  # column(4,
                                  #        uiOutput("ui_copula_types_portfolio_optimization")
@@ -384,8 +411,7 @@ shinyUI(
                   # ),
                   tabBox(title = "", width = 6,
                          id = "portfolio_optimization_tabset2",
-                         tabPanel("Return density", plotlyOutput("density_plot") %>% withSpinner(type = 5)),
-                         # tabPanel("Density  p.a.", plotlyOutput("density_pa_plot") %>% withSpinner(type = 5)),
+                         tabPanel("Return density", plotlyOutput("density_plot") %>% withSpinner(type = 5))
                   )
                 )
         ),
@@ -394,10 +420,15 @@ shinyUI(
                        tabBox(
                          title = "", width = 12,
                          id = "insample_evaluation_tabset1",
-                         tabPanel("Portfolio value", plotlyOutput("insample_evaluation_daily_plot", width = "auto", height = "768px") %>% withSpinner(type = 5)),
-                         # tabPanel("Weights last record", plotlyOutput("weights_last_record_plot") %>% withSpinner(type = 5))
+                         tabPanel("Portfolio value", plotlyOutput("insample_evaluation_daily_plot", width = "auto", height = "768px") %>% withSpinner(type = 5))
                        )
                 )
+        ),
+        tabItem(tabName = "advanced_settings",
+                box(title = "Advanced settings", width = 12, solidHeader = T, status = "primary", collapsible = T, collapsed = F,
+                    DTOutput("advanced_settings_datatable")
+                    
+                ),
         ),
         tabItem(tabName = "menu_about",
                 # includeMarkdown("docs/about.md")
