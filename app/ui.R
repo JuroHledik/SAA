@@ -31,12 +31,13 @@ shinyUI(
       tabItems(
         tabItem(tabName = "home",
                 fluidRow(class = "text-center",
-                  column(width = 3, align="center"),
+                  column(width = 2, align="center"),
                   column(width = 8, align="center",
+                    infoBoxOutput("button_upload"),
                     infoBoxOutput("button_return_simulation"),
                     infoBoxOutput("button_portfolio_optimization"),
                   ),
-                  column(width = 3, align="center")
+                  column(width = 2, align="center")
                 ),
                 fluidRow(class = "text-center",
                          column(width = 2, align="center"),
@@ -50,7 +51,7 @@ shinyUI(
                 fluidRow(class = "text-center",
                          column(width = 2, align="center"),
                          column(width = 8, align="center",
-                                infoBoxOutput("button_upload"),
+                                infoBoxOutput("button_advanced_settings"),
                                 infoBoxOutput("button_menu_about"),
                                 infoBoxOutput("button_github")
                          ),
@@ -327,12 +328,24 @@ shinyUI(
                                         )
                                  ),
                                  uiOutput("ui_portfolio_optimization_frequencies"),
-                                 uiOutput("ui_portfolio_optimization_maturities"),
-                                 # ,
-                                 # column(4,
-                                 #        uiOutput("ui_copula_types_portfolio_optimization")
-                                 # )
+                                 uiOutput("ui_portfolio_optimization_maturities")
                                )
+                           ),
+                           box(title = "Optional Portfolio Constraints", width = 12, solidHeader = T, status = "primary", collapsible = T, collapsed = F,
+                               fluidRow(
+                                 column(3,
+                                        p(HTML("<b>min_return</b>"),span(shiny::icon("info-circle"), id = "info_min_return"),numericInput("min_return", NULL, -1),
+                                          tippy::tippy_this(elementId = "info_min_return",tooltip = "Minimum expected return accepted by the investor",placement = "right")
+                                        )
+                                 ),
+                                 column(3,
+                                        p(HTML("<b>min_CVaR_return</b>"),span(shiny::icon("info-circle"), id = "info_min_cvar_return"),numericInput("min_cvar_return", NULL, -1),
+                                          tippy::tippy_this(elementId = "info_min_cvar_return",tooltip = "Minimum expected return in the alpha % of the worst cases accepted by the investor",placement = "right")
+                                        )
+                                 ),
+                                 uiOutput("ui_Omega_method_parameters1_Lambda"),
+                                 uiOutput("ui_theta3_method_parameters1")
+                               ),
                            ),
                          ),
                          fluidRow(
@@ -367,29 +380,22 @@ shinyUI(
                            ),
                          ),
                   ),
-                  box(title = "Portfolio Constraints", width = 6, solidHeader = T, status = "primary", collapsible = T, collapsed = F,
-                      fluidRow(
-                        column(2,
-                               p(HTML("<b>min_return</b>"),span(shiny::icon("info-circle"), id = "info_min_return"),numericInput("min_return", NULL, 0),
-                                 tippy::tippy_this(elementId = "info_min_return",tooltip = "Minimum expected return accepted by the investor",placement = "right")
-                               )
-                        ),
-                        column(4,
-                          fluidRow(
-                            column(8,
-                                   p(HTML("<b>min_CVaR_return</b>"),span(shiny::icon("info-circle"), id = "info_min_cvar_return"),numericInput("min_cvar_return", NULL, -1),
-                                     tippy::tippy_this(elementId = "info_min_cvar_return",tooltip = "Minimum expected return in the alpha % of the worst cases accepted by the investor",placement = "right")
-                                   )
-                            ),
-                            column(4, radioButtons('Omega_method', "Omega:", choices  = c("fixed", "variable"), selected = "fixed", inline = F)),
-                          )
-                        ),
-                        uiOutput("ui_Omega_method_parameters1"),
-                        uiOutput("ui_theta3_method_parameters1")
-                      ),
+                  box(title = "Portfolio Constraints of Individual Asset Classes", width = 6, solidHeader = T, status = "primary", collapsible = T, collapsed = F,
+                      column(6, radioButtons('Omega_method', "Total portfolio size Omega:", choices  = c("fixed", "variable"), selected = "fixed", inline = F)),
+                      uiOutput("ui_Omega_method_parameters1_Omega"),
                       DTOutput("my_datatable")
 
                   ),
+                  box(title = "Secondary Horizon Constraints", width = 6, solidHeader = T, status = "primary", collapsible = T, collapsed = F,
+                      fluidRow(
+                        column(4, radioButtons('secondary_horizon', "Include?", choices  = c("yes", "no"), selected = "no", inline = F)
+                        ),
+                        uiOutput("ui_portfolio_optimization_secondary_horizon_model_selection"),
+                        uiOutput("ui_portfolio_optimization_maturities_secondary_horizon"),
+                      ),
+                      uiOutput("ui_secondary_horizon_constraints")
+                  ),
+                  
                   box(title = "History", width = 12, solidHeader = T, status = "success", collapsible = T, collapsed = F,
                       tableOutput("kable_proportion"),
                       fluidRow(
@@ -425,9 +431,47 @@ shinyUI(
                 )
         ),
         tabItem(tabName = "advanced_settings",
-                box(title = "Advanced settings", width = 12, solidHeader = T, status = "primary", collapsible = T, collapsed = F,
-                    DTOutput("advanced_settings_datatable")
-                    
+                column(width = 6,
+                  box(title = "Advanced Constraints", width = 12, solidHeader = T, status = "primary", collapsible = T, collapsed = F,
+                      DTOutput("advanced_settings_datatable")
+                      
+                  ),
+                ),
+                column(width = 6,
+                       box(title = "User Imported Returns - Secondary Horizon", width = 12, solidHeader = T, status = "primary",
+                           column(width=4,
+                                  # Input: Select a file ----
+                                  fileInput("file_user_imported_returns_secondary", "Choose CSV File",
+                                            multiple = FALSE,
+                                            accept = c("text/csv",
+                                                       "text/comma-separated-values,text/plain",
+                                                       ".csv")),
+                                  checkboxInput("header_user_imported_returns_secondary", "Header", TRUE)                               
+                           ),
+                           column(width=4,
+                                  radioButtons("sep_user_imported_returns_secondary", "Separator",
+                                               choices = c(Comma = ",",
+                                                           Semicolon = ";",
+                                                           Tab = "\t"),
+                                               selected = ",")                          
+                           ),
+                           column(width=4,
+                                  p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity_user_imported_returns_secondary"),
+                                    selectInput("maturity_user_imported_returns_secondary", NULL,
+                                                choices = maturities_choices_daily, selected = "1 year"
+                                    ),
+                                    tippy::tippy_this(elementId = "info_maturity_user_imported_returns_secondary",tooltip = "Investment horizon",placement = "right")
+                                  )
+                           )
+                       )
+                ),
+                column(width = 6,
+                       box(title = "Preview", width = 12, solidHeader = T, collapsible = T, collapsed = F, status = "primary",
+                           column(width=12,
+                                  tableOutput("file_upload_table_user_imported_returns_secondary")                               
+                           )
+                           
+                       )
                 ),
         ),
         tabItem(tabName = "menu_about",

@@ -73,6 +73,11 @@ shinyServer(function(input, output, session){
             icon = icon("chart-line"), color = "light-blue"
     )
   })
+  output$button_advanced_settings <- renderInfoBox({
+    infoBox("", a("Advanced Settings", onclick = "openTab('advanced_settings')", href="#"),
+            icon = icon("radiation"), color = "light-blue"
+    )
+  })
   output$button_menu_about <- renderInfoBox({
     infoBox("", a("About", onclick = "openTab('menu_about')", href="#"),
             icon = icon("question-circle-o"), color = "light-blue"
@@ -102,41 +107,89 @@ shinyServer(function(input, output, session){
     if(input$return_model!="Custom") {
       if(input$portfolio_optimization_frequency == "daily"){
         column(4,
-               p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
+               p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
                  selectInput("maturity", NULL,
                              choices = maturities_choices_daily, selected = "1 year"
                  ),
-                 tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
+                 tippy::tippy_this(elementId = "info_maturity",tooltip = "Investment horizon",placement = "right")
                )
         )
       } else {
         if(input$portfolio_optimization_frequency == "weekly"){
           column(4,
-                 p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
+                 p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
                    selectInput("maturity", NULL,
                                choices = maturities_choices_weekly, selected = "1 year"
                    ),
-                   tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
+                   tippy::tippy_this(elementId = "info_maturity",tooltip = "Investment horizon",placement = "right")
                  )
           )
         } else {
           if(input$portfolio_optimization_frequency == "monthly"){
             column(4,
-                   p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
+                   p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
                      selectInput("maturity", NULL,
                                  choices = maturities_choices_monthly, selected = "1 year"
                      ),
-                     tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
+                     tippy::tippy_this(elementId = "info_maturity",tooltip = "Investment horizon",placement = "right")
                    )
             )
           } else {
             if(input$portfolio_optimization_frequency == "quarterly"){
               column(4,
-                     p(HTML("<b>Maturity</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
+                     p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity"),
                        selectInput("maturity", NULL,
                                    choices = maturities_choices_quarterly, selected = "1 year"
                        ),
-                       tippy::tippy_this(elementId = "info_maturity",tooltip = "Maturity horizon",placement = "right")
+                       tippy::tippy_this(elementId = "info_maturity",tooltip = "Investment horizon",placement = "right")
+                     )
+              )
+            }
+          }
+        }  
+      }
+    }
+  })
+  
+  output$ui_portfolio_optimization_maturities_secondary_horizon <- renderUI({
+    if(input$return_model_secondary_horizon!="Custom" && input$secondary_horizon=="yes") {
+      if(input$portfolio_optimization_frequency == "daily"){
+        column(4,
+               p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity_secondary_horizon"),
+                 selectInput("maturity_secondary_horizon", NULL,
+                             choices = maturities_choices_daily, selected = "1 year"
+                 ),
+                 tippy::tippy_this(elementId = "info_maturity_secondary_horizon",tooltip = "Secondary investment horizon.",placement = "right")
+               )
+        )
+      } else {
+        if(input$portfolio_optimization_frequency == "weekly"){
+          column(4,
+                 p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity_secondary_horizon"),
+                   selectInput("maturity_secondary_horizon", NULL,
+                               choices = maturities_choices_weekly, selected = "1 year"
+                   ),
+                   tippy::tippy_this(elementId = "info_maturity_secondary_horizon",tooltip = "Secondary investment horizon.",placement = "right")
+                 )
+          )
+        } else {
+          if(input$portfolio_optimization_frequency == "monthly"){
+            column(4,
+                   p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity_secondary_horizon"),
+                     selectInput("maturity_secondary_horizon", NULL,
+                                 choices = maturities_choices_monthly, selected = "1 year"
+                     ),
+                     tippy::tippy_this(elementId = "info_maturity_secondary_horizon",tooltip = "Secondary investment horizon.",placement = "right")
+                   )
+            )
+          } else {
+            if(input$portfolio_optimization_frequency == "quarterly"){
+              column(4,
+                     p(HTML("<b>Horizon</b>"),span(shiny::icon("info-circle"), id = "info_maturity_secondary_horizon"),
+                       selectInput("maturity_secondary_horizon", NULL,
+                                   choices = maturities_choices_quarterly, selected = "1 year"
+                       ),
+                       tippy::tippy_this(elementId = "info_maturity_secondary_horizon",tooltip = "Secondary investment horizon.",placement = "right")
                      )
               )
             }
@@ -223,28 +276,33 @@ shinyServer(function(input, output, session){
       geom_smooth(method = "lm")
   })
   
-  output$ui_Omega_method_parameters1 <- renderUI({
+  output$ui_Omega_method_parameters1_Omega <- renderUI({
     if(input$Omega_method == "fixed"){
-      column(4,
-        fluidRow(
-          column(6, 
-                 p(HTML("<b>Omega</b>"),span(shiny::icon("info-circle"), id = "info_Omega"),numericInput("Omega", NULL, 11520),
-                   tippy::tippy_this(elementId = "info_Omega",tooltip = "Total portfolio size in EUR millions. If set to zero, Omega is determined endogenously.",placement = "right")
-                 )
-          ),
-          column(6, 
-                 p(HTML("<b>max_CVaR</b>"),span(shiny::icon("info-circle"), id = "info_Lambda"),numericInput("Lambda", NULL, 11520),
-                   tippy::tippy_this(elementId = "info_Lambda",tooltip = "Maximum allowed CVAR (expected shortfall).",placement = "right")
-                 )
-          )   
-        )
-      )
+      column(6,
+             p(HTML("<b>Omega[M]</b>"),span(shiny::icon("info-circle"), id = "info_Omega"),numericInput("Omega", NULL, 11520),
+               tippy::tippy_this(elementId = "info_Omega",tooltip = "Total portfolio size in EUR millions. If set to zero, Omega is determined endogenously.",placement = "right")
+             )
+          )
+    }
+  })
+  
+  output$ui_Omega_method_parameters1_Lambda <- renderUI({
+    if(input$Omega_method == "fixed"){
+      column(3,
+              p(HTML("<b>max_CVaR[M]</b>"),span(shiny::icon("info-circle"), id = "info_Lambda"),numericInput("Lambda", NULL, 11520),
+                        tippy::tippy_this(elementId = "info_Lambda",tooltip = "Maximum allowed CVAR (expected shortfall).",placement = "right")
+                      )
+               )   
     }
   })
   
   output$ui_theta3_method_parameters1 <- renderUI({
-    if(input$theta3 > 0){
-      column(2, 
+    print(input$theta3)
+    print(input$min_cvar_return)
+    print(input$Lambda)
+    print(input$Omega)
+    if(input$theta3 > 0 || input$min_cvar_return>-1 || input$Lambda < input$Omega){
+      column(3, 
              p(HTML("<b>alpha</b>"),span(shiny::icon("info-circle"), id = "info_alpha"),numericInput("alpha", NULL, 0.05),
                tippy::tippy_this(elementId = "info_alpha",tooltip = "Expected shortfall level",placement = "right")
              )
@@ -252,6 +310,52 @@ shinyServer(function(input, output, session){
     }
   })  
   
+  output$ui_portfolio_optimization_secondary_horizon_model_selection <- renderUI({
+    if (input$secondary_horizon=="yes") {
+        column(4,
+               p(HTML("<b>Model</b>"),span(shiny::icon("info-circle"), id = "info_return_models_secondary_horizon"),
+                 radioButtons('return_model_secondary_horizon', NULL, choices  = return_models, selected = "Pearson", inline = F),
+                 tippy::tippy_this(elementId = "info_return_models_secondary_horizon", tooltip = "Select which return prediction model to use for the secondary investment horizon.", placement = "right")
+               )
+        )
+    }
+  })
+
+  output$ui_theta3_method_parameters1_secondary_horizon <- renderUI({
+    if(input$theta3 > 0 || input$min_cvar_return_secondary_horizon>-1 || input$Lambda_secondary_horizon < input$Omega){
+      column(3, 
+             p(HTML("<b>alpha</b>"),span(shiny::icon("info-circle"), id = "info_alpha_secondary_horizon"),numericInput("alpha_secondary_horizon", NULL, 0.05),
+               tippy::tippy_this(elementId = "info_alpha",tooltip = "Expected shortfall level, secondary investment horizon",placement = "right")
+             )
+      ) 
+    }
+  })  
+  
+  output$ui_secondary_horizon_constraints <- renderUI({
+    if(input$secondary_horizon == "yes"){
+      fluidRow(
+        column(3,
+               p(HTML("<b>min_return</b>"),span(shiny::icon("info-circle"), id = "info_min_return_secondary_horizon"),numericInput("min_return_secondary_horizon", NULL, -1),
+                 tippy::tippy_this(elementId = "info_min_return_secondary_horizon",tooltip = "Minimum expected return accepted by the investor over the secondary investment horizon.",placement = "right")
+               )
+        ),
+        column(3,
+                p(HTML("<b>min_CVaR_return</b>"),span(shiny::icon("info-circle"), id = "info_min_cvar_return_secondary_horizon"),numericInput("min_cvar_return_secondary_horizon", NULL, -1),
+                  tippy::tippy_this(elementId = "info_min_cvar_return_secondary_horizon",tooltip = "Minimum expected return in the alpha % of the worst cases accepted by the investor over the secondary investment horizon.",placement = "right")
+                )
+        ),
+        if(input$Omega_method == "fixed"){
+          column(3,
+                 p(HTML("<b>max_CVaR[M]</b>"),span(shiny::icon("info-circle"), id = "info_Lambda_secondary_horizon"),numericInput("Lambda_secondary_horizon", NULL, 11520),
+                   tippy::tippy_this(elementId = "info_Lambda_secondary_horizon",tooltip = "Maximum allowed CVAR (expected shortfall).",placement = "right")
+                 )
+          )   
+        },
+        uiOutput("ui_theta3_method_parameters1_secondary_horizon")
+      )
+    }
+  })
+    
   output$ui_dlbtn <- renderUI({
     if(nrow(values$data) > 0){
       downloadButton("dl_data", "Download")
@@ -320,18 +424,6 @@ shinyServer(function(input, output, session){
     N = as.numeric(input$N)
     N_visual = as.numeric(input$N_visual)
     maturity = input$maturity
-    if (theta3==0) {
-      alpha = 0.05
-    } else {
-      alpha = input$alpha      
-    }
-    
-    if (theta3==0) {
-      alpha = 0.05
-    } else {
-      alpha = input$alpha      
-    }
-    
     alpha_cvar_total = input$alpha_cvar_total
     min_cvar_return = input$min_cvar_return
     Lambda = input$Lambda
@@ -349,8 +441,65 @@ shinyServer(function(input, output, session){
       Omega = NA
       Lambda = NA
     }
-
+    
+    #Is shortfall being optimized in any way?
+    shortfall_variables = FALSE
+    if (!is.na(Lambda) & !is.na(Omega)) {
+      if (Lambda<Omega) {
+        shortfall_variables = TRUE 
+      }
+    }
+    if ((theta3>0) | (min_cvar_return>-1)) {
+      shortfall_variables = TRUE 
+    }
+    if (shortfall_variables==TRUE) {
+      alpha = input$alpha
+    } else {
+      alpha = 0.05
+    }
+    
     optimization_inputs = list()
+    
+    #If a secondary horizon is included:
+    secondary_horizon = input$secondary_horizon
+    optimization_inputs$secondary_horizon = secondary_horizon
+    if (secondary_horizon=="yes") {
+      return_model_secondary_horizon = input$return_model_secondary_horizon
+      maturity_secondary_horizon = input$maturity_secondary_horizon
+      min_return_secondary_horizon = input$min_return_secondary_horizon
+      min_cvar_return_secondary_horizon = input$min_cvar_return_secondary_horizon
+      alpha_secondary_horizon = input$alpha_secondary_horizon
+      if (Omega_method=="variable") {
+        Lambda_secondary_horizon = NA
+      } else {
+        Lambda_secondary_horizon = input$Lambda_secondary_horizon
+      }
+      optimization_inputs$return_model_secondary_horizon = return_model_secondary_horizon
+      optimization_inputs$maturity_secondary_horizon = maturity_secondary_horizon
+      optimization_inputs$min_return_secondary_horizon = min_return_secondary_horizon
+      optimization_inputs$min_cvar_return_secondary_horizon = min_cvar_return_secondary_horizon
+      optimization_inputs$Lambda_secondary_horizon = Lambda_secondary_horizon
+      
+      #Is shortfall being included in the secondary horizon constraint?
+      shortfall_variables_secondary_horizon = FALSE
+      if (!is.na(Lambda_secondary_horizon) & !is.na(Omega)) {
+        if (Lambda_secondary_horizon<Omega) {
+          shortfall_variables_secondary_horizon = TRUE 
+        }
+      }
+      if (min_cvar_return_secondary_horizon>-1) {
+        shortfall_variables_secondary_horizon = TRUE 
+      }
+      if (shortfall_variables_secondary_horizon==TRUE) {
+        alpha_secondary_horizon = input$alpha_secondary_horizon
+      } else {
+        alpha_secondary_horizon = 0.05
+      }
+      
+      optimization_inputs$shortfall_variables_secondary_horizon = shortfall_variables_secondary_horizon
+      optimization_inputs$alpha_secondary_horizon = alpha_secondary_horizon
+    } 
+
     optimization_inputs$constraints_df = constraints_df
     optimization_inputs$theta1 = theta1
     optimization_inputs$theta2 = theta2
@@ -367,6 +516,7 @@ shinyServer(function(input, output, session){
     optimization_inputs$alpha_cvar_total = alpha_cvar_total
     optimization_inputs$frequency = frequency
     optimization_inputs$return_model = return_model
+    optimization_inputs$shortfall_variables = shortfall_variables
     
     print(values)
     optimization_inputs$include_in_shortfall_optimization = values$advanced_settings_df$include_in_shortfall_optimization
@@ -1149,6 +1299,41 @@ output$return_visualization_correlations_plot <- renderPlotly({
         df_sim_pa = as.data.frame((df_sim + 1) ^ conversion_constant) - 1  
         
         save(df_sim, df_sim_pa, file = paste0(path_model_output_user_imported_returns,"user_imported_returns.Rdata"))
+      },
+      error = function(e) {
+        # return a safeError if a parsing error occurs
+        stop(safeError(e))
+      }
+    )
+    
+    return(head(df))
+    
+  })
+  
+  output$file_upload_table_user_imported_returns_secondary <- renderTable({
+    
+    # input$file1 will be NULL initially. After the user selects
+    # and uploads a file, head of that data file by default,
+    # or all rows if selected, will be shown.
+    
+    req(input$file_user_imported_returns_secondary)
+    
+    # when reading semicolon separated files,
+    # having a comma separator causes `read.csv` to error
+    tryCatch(
+      {
+        df <- read.csv(input$file_user_imported_returns_secondary$datapath,
+                       header = input$header_user_imported_returns_secondary,
+                       sep = input$sep_user_imported_returns_secondary
+        )
+        write.table(df,paste0(path_data,"user_imported_returns_secondary.csv"), row.names = FALSE, sep=";")
+        df_sim = df
+        
+        maturity_text = input$maturity_user_imported_returns_secondary
+        conversion_constant = frequencies_conversion_daily[maturities_choices_daily==maturity_text]
+        df_sim_pa = as.data.frame((df_sim + 1) ^ conversion_constant) - 1  
+        
+        save(df_sim, df_sim_pa, file = paste0(path_model_output_user_imported_returns,"user_imported_returns_secondary.Rdata"))
       },
       error = function(e) {
         # return a safeError if a parsing error occurs
