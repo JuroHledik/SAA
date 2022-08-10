@@ -69,6 +69,9 @@ portfolio_optimization <- function(optimization_inputs){
   
   return_model = optimization_inputs$return_model
   include_in_shortfall_optimization = optimization_inputs$include_in_shortfall_optimization
+  secondary_horizon = optimization_inputs$secondary_horizon
+  shortfall_variables = optimization_inputs$shortfall_variables
+  shortfall_variables_secondary_horizon = optimization_inputs$shortfall_variables_secondary_horizon
 
   if (return_model!="Custom") {
     frequency = optimization_inputs$frequency
@@ -77,9 +80,27 @@ portfolio_optimization <- function(optimization_inputs){
     frequency = "custom"
     maturity = "custom"
   }
+  
+  if (secondary_horizon=="yes") {
+    return_model_secondary_horizon = optimization_inputs$return_model_secondary_horizon
+    min_return_secondary_horizon = optimization_inputs$min_return_secondary_horizon
+    min_cvar_return_secondary_horizon = optimization_inputs$min_cvar_return_secondary_horizon
+    Lambda_secondary_horizon = optimization_inputs$Lambda_secondary_horizon
+    alpha_secondary_horizon = optimization_inputs$alpha_secondary_horizon
+    shortfall_variables_secondary_horizon = optimization_inputs$shortfall_variables_secondary_horizon
+    
+    if (return_model_secondary_horizon!="Custom") {
+      maturity_secondary_horizon = optimization_inputs$maturity_secondary_horizon
+    } else {
+      maturity_secondary_horizon = "custom"
+    }
+    
+    #Determine the maturity for the secondary horizon:
+    maturity_secondary_horizon = determine_maturity(maturity_secondary_horizon, frequency)
+  } 
 
   theta = c(theta1, theta2, theta3, theta4)
-  
+
   problem_is_linear = TRUE
   if (theta[2]!=0 || theta[4]!=0) {
     problem_is_linear = FALSE
@@ -111,12 +132,13 @@ portfolio_optimization <- function(optimization_inputs){
       }
     }
   }
-  print('A')
+  
   N_max = nrow(df_sim)
-  print('B')
   df_sim = df_sim[sample(N_max, N), ]
+
   N = nrow(df_sim)
   K = ncol(df_sim)
+  
   asset_names = names(df_sim)
   asset_names_no_escape = str_replace(asset_names,"/", " ")
 
@@ -231,19 +253,29 @@ portfolio_optimization <- function(optimization_inputs){
     constraint = list(name = "MinExpReturnX", params = c(min_return))
     constraints = append(constraints, list(constraint))
   }
+  
+  # Secondary horizon constraints:
+  if (secondary_horizon=="yes") {
+    if (min_cvar_return_secondary_horizon>-1) {
+      constraint = list(name = "ExpShortfallReturnGreaterThanX_secondary_horizon", params = c(alpha_secondary_horizon, min_cvar_return_secondary_horizon))
+      constraints = append(constraints, list(constraint))
+    }
+    
+    if (!is.na(Lambda_secondary_horizon) & !is.na(Omega)) {
+      if (Lambda_secondary_horizon<Omega) {
+        constraint = list(name = "ExpShortfallAmountLowerThanX_secondary_horizon", params = c(alpha_secondary_horizon, Lambda_secondary_horizon))
+        constraints = append(constraints, list(constraint))
+      }  
+    }
+    
+    if (min_return_secondary_horizon>-1) {
+      constraint = list(name = "MinExpReturnX_secondary_horizon", params = c(min_return_secondary_horizon))
+      constraints = append(constraints, list(constraint))
+    }    
+  }
   ################################################################################
   # Formulate the problem as quadratic programming
   ################################################################################
-  # Determine whether we need to use the shortfall variables t, z_i:
-  shortfall_variables = FALSE
-  if (!is.na(Lambda) & !is.na(Omega)) {
-    if (Lambda<Omega) {
-      shortfall_variables = TRUE 
-    }
-  }
-  if ((theta[3]>0) | (min_cvar_return>-1)) {
-   shortfall_variables = TRUE 
-  }
   solvable = TRUE
   tryCatch(
     {
@@ -251,10 +283,6 @@ portfolio_optimization <- function(optimization_inputs){
       df = df_sim
       x_bar = as.numeric(colMeans(df))
       Sigma = as.matrix(cov(df))
-      # print(Sigma)
-      # print(x_bar)
-      # write.table(Sigma,paste0(path_data,"Sigma.csv"), row.names = FALSE, sep=";")
-      # write.table(x_bar,paste0(path_data,"expected_return.csv"), row.names = FALSE, sep=";")
 
       #Transformation to standard quadprog notation:
       d = theta[1] * x_bar + theta[4] * v
@@ -265,6 +293,40 @@ portfolio_optimization <- function(optimization_inputs){
         D = cbind(D, matrix(0,K,N+1))
         D = rbind(D, cbind(matrix(0,N+1,K), eps * diag(N+1))) # The eps here is to make the matrix positive semi-definite. Otherwise quadprog is unhappy. It's ok because by definition, it is positive semi-definite so no problem.
       }
+      
+      if (secondary_horizon=="yes") {
+        if (shortfall_variables_secondary_horizon==TRUE) {
+          d = append(d, numeric(N+1))
+          if (shortfall_variables==FALSE) {
+            D = cbind(D, matrix(0,K,N+1))
+            D = rbind(D, cbind(matrix(0,N+1,K), eps * diag(N+1))) # The eps here is to make the matrix positive semi-definite. Otherwise quadprog is unhappy. It's ok because by definition, it is positive semi-definite so no problem.
+          } else {
+            D = cbind(D, matrix(0, K + N + 1, N + 1))
+            D = rbind(D, cbind(matrix(0, N + 1, K + N + 1), eps * diag(N +1)))
+          }
+        }
+      }
+      
+      #If the secondary horizon constraint is used, get the expected returns:
+      if (secondary_horizon=="yes") {
+        if (return_model_secondary_horizon=="Gaussian") {
+          load(file = paste0(path_model_output_simulated_returns,frequency,"/","gaussian/df_maturity", maturity_secondary_horizon, ".Rdata")) 
+          df_sim = df_sim_MG
+        } else {
+          if (return_model_secondary_horizon=="Pearson") {
+            load(file = paste0(path_model_output_simulated_returns,frequency,"/","vine_copula/df_maturity", maturity_secondary_horizon, ".Rdata"))
+          } else {
+            if (return_model_secondary_horizon=="Custom") {
+              load(file = paste0(path_model_output_user_imported_returns,"/user_imported_returns_secondary.Rdata"))
+            }
+          }
+        }
+        N_max = nrow(df_sim)
+        df_sim = df_sim[sample(N_max, N), ]
+        df_secondary_horizon = df_sim
+        x_bar_secondary_horizon = as.numeric(colMeans(df_secondary_horizon))
+      } 
+      
       # CONSTRAINTS
       #############
       
@@ -360,9 +422,19 @@ portfolio_optimization <- function(optimization_inputs){
         }
       }
       
-      L = length(b)
-      
+      #Expected return greater than (secondary horizon):
+      if (secondary_horizon=="yes") {
+        for (constraint in constraints) {
+          if (constraint$name == "MinExpReturnX_secondary_horizon") {
+            min_return = constraint$params[1]
+            A = rbind(A, -x_bar_secondary_horizon)
+            b = append(b, -min_return)
+          }
+        }
+      }
+
       # If also minimizing shortfall, Introduce variables z,t that are relevant for shortfall minimization:
+      L = length(b)
       if (shortfall_variables==TRUE) {
         # Add z,t variables:
         A = cbind(A, matrix(0,L,N+1))
@@ -401,6 +473,79 @@ portfolio_optimization <- function(optimization_inputs){
           b = append(b, Lambda/Omega)
         }
       }
+
+     
+      
+      if (secondary_horizon=="yes") {
+        # If shortfall constraint is included in the secondary horizon, introduce variables z,t also for the secondary horizon:
+        L = length(b)
+        if (shortfall_variables_secondary_horizon==TRUE) {
+          print('A')
+          # Add z,t variables:
+          A = cbind(A, matrix(0,L,N+1))
+          
+          if (shortfall_variables==FALSE) {
+            # z_i <= 0
+            A = rbind(A, cbind(matrix(0, N, K), diag(N), matrix(0,N,1)))
+            b = append(b, numeric(N))
+            
+            # t + z_i <= wTx_i
+            for (n in 1:N) {
+              x = df_secondary_horizon[n,] * include_in_shortfall_optimization
+              temp = matrix(0,1,N)
+              temp[1,n] = 1
+              A = rbind(A,as.matrix(cbind(-x, temp,1)))
+              b = append(b,0)
+            }
+          } else {
+            print('B')
+            # z_i <= 0
+            A = rbind(A, cbind(matrix(0,N,K + N + 1), diag(N), matrix(0,N,1)))
+            b = append(b, numeric(N))
+            
+            # t + z_i <= wTx_i
+            for (n in 1:N) {
+              x = df_secondary_horizon[n,] * include_in_shortfall_optimization
+              temp = matrix(0,1,N)
+              temp[1,n] = 1
+              A = rbind(A,as.matrix(cbind(-x, matrix(0,1,N+1), temp,1)))
+              b = append(b,0)
+            }
+          }
+        }
+        
+        #Shortfall return greater than (secondary horizon):
+        for (constraint in constraints) {
+          if (constraint$name == "ExpShortfallReturnGreaterThanX_secondary_horizon") {
+            alpha = constraint$params[1]
+            min_cvar_return = constraint$params[2]
+            if (shortfall_variables==FALSE) {
+              A = rbind(A, append(matrix(0,1,K), append(-(numeric(N)+1)/(N*alpha), -1)))
+              b = append(b, -min_cvar_return)
+            } else {
+              A = rbind(A, append(matrix(0,1,K + N + 1), append(-(numeric(N)+1)/(N*alpha), -1)))
+              b = append(b, -min_cvar_return)
+            }
+          }
+        }
+        
+        #Shortfall amount lower than (secondary horizon):
+        for (constraint in constraints) {
+          if (constraint$name == "ExpShortfallAmountLowerThanX_secondary_horizon") {
+            alpha = constraint$params[1]
+            Lambda = constraint$params[2]
+            if (shortfall_variables==FALSE) {
+              A = rbind(A, append(matrix(0,1,K), append(-(numeric(N)+1)/(N*alpha), -1)))
+              b = append(b, Lambda/Omega)
+            } else {
+              A = rbind(A, append(matrix(0,1,K + N + 1), append(-(numeric(N)+1)/(N*alpha), -1)))
+              b = append(b, Lambda/Omega)
+            }
+          }
+        }  
+      }
+      
+      
     },
     error = function(e) {
       print(Omega)
@@ -466,7 +611,7 @@ portfolio_optimization <- function(optimization_inputs){
     
     # test = solve.QP(Dmat = D, dvec = d, Amat = -t(A), bvec = -b, meq=number_of_equality_constraints, factorized = FALSE)
     # test = ipop(-d, D, A, -1/eps*(numeric(L)+1), -1/eps*(numeric(K)+1), 1/eps*(numeric(K)+1), 1/eps*(numeric(L)+1) + b)
-    print('blabla')
+
     print(solvable)    
     ################################################################################
     # Evaluate the results
