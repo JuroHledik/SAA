@@ -26,7 +26,7 @@ logo_grey_light <- shinyDashboardLogoDIY(
   boldText = "JuroHledik_SAA"
   ,mainText = ""
   ,textSize = 10
-  ,badgeText = "1.2.0"
+  ,badgeText = "1.3.0"
   ,badgeTextColor = "white"
   ,badgeTextSize = 2
   ,badgeBackColor = "rgb(150,150,150)"
